@@ -48,13 +48,14 @@
                 <input type="text" id="reg-taxid" placeholder="統一編號 (選填)" class="w-full p-2 border rounded">
                 <input type="text" id="login-account" placeholder="帳號" class="w-full p-2 border rounded">
                 <input type="password" id="login-password" placeholder="密碼" class="w-full p-2 border rounded">
-                <!-- 橘色按鈕風格 -->
+                
+                <!-- 注意這裡的 onclick 綁定 -->
                 <button onclick="handleAuthSubmit()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition">
                     登入 / 註冊
                 </button>
             </div>
         </section>
-
+        
         <!-- 2. 購物頁面 -->
         <section id="page-shop" class="hidden max-w-7xl mx-auto p-4 flex gap-6 mt-4">
             <!-- 左側類別篩選 -->
@@ -350,11 +351,18 @@
         // 修改原 HTML 的按鈕綁定
         // 將原先的 <button onclick="mockLogin()"> 拆分為兩個獨立按鈕或以條件判斷：
         function handleAuthSubmit() {
+            // 偵測點 1：確認按鈕有被點擊
+            console.log('--- 按鈕已點擊，進入 handleAuthSubmit ---');
+            
             const authCode = document.getElementById('auth-code').value.trim();
+            console.log('取得的授權代碼:', authCode);
+
             if (authCode) {
-                registerUser(); // 有填寫授權代碼視為註冊
+                console.log('判斷為：註冊流程');
+                registerUser(); 
             } else {
-                loginUser();    // 未填寫視為登入
+                console.log('判斷為：登入流程');
+                loginUser();    
             }
         }
         // 模擬登出行為
