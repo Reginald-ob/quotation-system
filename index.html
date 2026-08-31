@@ -673,9 +673,9 @@
             document.getElementById(`admin-view-${view}`).classList.remove('hidden');
 
             if (view === 'auth') {
-                fetchAuthCodes(); // 載入真實資料庫代碼
+                fetchAuthCodes(); 
             } else if (view === 'orders') {
-                // TODO: 稍後串接拉取真實資料庫的未結帳訂單
+                fetchAdminOrders(); // 觸發真實資料拉取
             }
         }
 
@@ -748,34 +748,82 @@
             ).join('');
         }
 
-        // 功能 b: 渲染並更新訂單報價
-        function renderAdminOrders() {
-            const container = document.getElementById('admin-orders-container');
-            const editableOrders = ordersList.filter(o => o.status !== 'completed'); // 排除已完成訂單
+// 功能 b: 從 Supabase 讀取未結帳/進行中訂單
+async function fetchAdminOrders() {
+    const container = document.getElementById('admin-orders-container');
+    container.innerHTML = '<p class="text-gray-500">載入中...</p>';
 
-            if (editableOrders.length === 0) {
-                container.innerHTML = '<p class="text-gray-500">目前無待處理的訂單</p>';
-                return;
-            }
+    // 抓取狀態符合的訂單
+    const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, status, total_amount, admin_note, created_at')
+        .in('status', ['pending_payment', 'processing'])
+        .order('created_at', { ascending: false });
 
-            container.innerHTML = editableOrders.map(order => `
-                <div class="border p-4 rounded bg-white shadow-sm">
-                    <p class="font-bold mb-2">訂單編號: ${order.orderId} (狀態: ${order.status})</p>
-                    <div class="flex gap-4 mb-2">
-                        <div class="w-1/2">
-                            <label class="block text-sm mb-1">修改總金額 (包含運費):</label>
-                            <input type="number" id="admin-price-${order.orderId}" value="${order.totalAmount}" class="w-full p-2 border rounded border-gray-300">
-                        </div>
-                        <div class="w-1/2">
-                            <label class="block text-sm mb-1">訂單備註 (運費明細等):</label>
-                            <input type="text" id="admin-note-${order.orderId}" value="${order.adminNote || ''}" placeholder="例如: 運費 $100" class="w-full p-2 border rounded border-gray-300">
-                        </div>
-                    </div>
-                    <button onclick="updateOrderByAdmin('${order.orderId}')" class="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700 text-sm">更新報價與備註</button>
+    if (error) {
+        console.error('讀取訂單失敗:', error);
+        container.innerHTML = '<p class="text-red-500">無法載入訂單資料，請確認管理員權限設定</p>';
+        return;
+    }
+
+    if (data.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">目前無待處理的訂單</p>';
+        return;
+    }
+
+    // 渲染管理介面[cite: 1]
+    container.innerHTML = data.map(order => `
+        <div class="border p-4 rounded bg-white shadow-sm">
+            <div class="flex justify-between border-b pb-2 mb-2">
+                <p class="font-bold">訂單編號: ${order.order_number}</p>
+                <p class="font-bold text-${order.status === 'pending_payment' ? 'red' : 'blue'}-500">
+                    狀態: ${order.status === 'pending_payment' ? '未付款' : '進行中'}
+                </p>
+            </div>
+            <div class="flex gap-4 mb-2">
+                <div class="w-1/2">
+                    <label class="block text-sm mb-1">修改總金額 (包含運費):</label>
+                    <input type="number" id="admin-price-${order.id}" value="${order.total_amount}" class="w-full p-2 border rounded border-gray-300">
                 </div>
-            `).join('');
+                <div class="w-1/2">
+                    <label class="block text-sm mb-1">訂單備註 (運費明細等):</label>
+                    <input type="text" id="admin-note-${order.id}" value="${order.admin_note || ''}" placeholder="例如: 運費 $100" class="w-full p-2 border rounded border-gray-300">
+                </div>
+            </div>
+            <button onclick="updateOrderByAdmin('${order.id}')" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-bold">更新報價與備註</button>
+        </div>
+    `).join('');
+}
+
+    // 功能 b: 將修改後的報價與備註寫入 Supabase[cite: 1]
+    async function updateOrderByAdmin(orderId) {
+        const newPrice = document.getElementById(`admin-price-${orderId}`).value;
+        const newNote = document.getElementById(`admin-note-${orderId}`).value;
+
+        if (!newPrice || isNaN(newPrice)) {
+            alert('請輸入有效的金額數值');
+            return;
         }
 
+        // 執行 UPDATE 覆寫資料庫
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                total_amount: Number(newPrice),
+                admin_note: newNote
+            })
+            .eq('id', orderId);
+
+        if (error) {
+            console.error('更新失敗:', error);
+            alert('報價更新失敗，請稍後再試');
+            return;
+        }
+
+        alert('訂單更新成功！');
+        fetchAdminOrders(); // 重新拉取以更新畫面
+    }
+    
         // 管理員執行更新報價與備註[cite: 1]
         function updateOrderByAdmin(orderId) {
             const orderIndex = ordersList.findIndex(o => o.orderId === orderId);
