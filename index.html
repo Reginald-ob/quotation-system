@@ -1,14 +1,325 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>產品報價下單系統</title>
-  </head>
-  <body>
-    <!-- React 應用的掛載點 -->
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <!-- 樣式框架: Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 圖示: Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- 字體: Google Fonts (Noto Sans TC) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-white text-gray-800 min-h-screen flex flex-col">
+
+    <!-- 頂部 Header -->
+    <header id="main-header" class="bg-gray-100 p-4 shadow-sm hidden flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold"><i class="ph ph-storefront mr-2"></i>批發採購系統</h1>
+            <div id="user-info" class="text-sm">
+                <span id="header-company-name">尚未登入</span>
+                <span id="header-tax-id" class="text-gray-500 ml-2"></span>
+            </div>
+            <nav class="flex gap-4">
+                <button onclick="navigateTo('page-shop')" class="hover:text-orange-500">購物</button>
+                <button onclick="navigateTo('page-cart')" class="hover:text-orange-500"><i class="ph ph-shopping-cart text-lg"></i></button>
+                <button onclick="navigateTo('page-orders')" class="hover:text-orange-500">我的訂單</button>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-500">登出</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主體內容區塊 -->
+    <main class="flex-grow">
+        
+        <!-- 1. 登入和註冊頁面 -->
+        <section id="page-login" class="max-w-md mx-auto mt-20 p-6 border rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-6 text-center">系統登入/註冊</h2>
+            <div class="space-y-4">
+                <input type="text" id="auth-code" placeholder="授權代碼 (10碼英文+數字)" class="w-full p-2 border rounded">
+                <input type="text" id="reg-company" placeholder="公司名稱" class="w-full p-2 border rounded">
+                <input type="text" id="reg-taxid" placeholder="統一編號 (選填)" class="w-full p-2 border rounded">
+                <input type="text" id="login-account" placeholder="帳號" class="w-full p-2 border rounded">
+                <input type="password" id="login-password" placeholder="密碼" class="w-full p-2 border rounded">
+                <!-- 橘色按鈕風格 -->
+                <button onclick="mockLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition">
+                    登入 / 註冊
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. 購物頁面 -->
+        <section id="page-shop" class="hidden max-w-7xl mx-auto p-4 flex gap-6 mt-4">
+            <!-- 左側類別篩選 -->
+            <aside class="w-1/4 border-r pr-4">
+                <h3 class="font-bold mb-4 text-lg border-b pb-2">商品類別</h3>
+                <ul id="category-list" class="space-y-2">
+                    <li class="cursor-pointer text-orange-500 font-medium">競賽級羽球</li>
+                    <li class="cursor-pointer hover:text-orange-500">訓練級羽球</li>
+                    <li class="cursor-pointer hover:text-orange-500">高階球拍</li>
+                </ul>
+            </aside>
+            <!-- 右側產品網格 -->
+            <div class="w-3/4">
+                <div id="product-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 卡片渲染區 -->
+                    <div class="border rounded shadow-sm p-4 cursor-pointer hover:shadow-md transition" onclick="navigateTo('page-product')">
+                        <div class="bg-gray-200 h-40 w-full mb-4 flex items-center justify-center text-gray-400">產品圖 (Mock)</div>
+                        <h4 class="font-bold">Victor 頂級比賽用球 (一打)</h4>
+                        <p class="text-orange-500 font-bold mt-2">NT$ 650</p>
+                    </div>
+                </div>
+            </div>
+            <!-- 底部購物車摘要 -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg flex justify-between items-center px-10">
+                <span>已選: 0 項 | 總計: NT$ 0</span>
+                <button onclick="navigateTo('page-cart')" class="bg-orange-500 text-white px-6 py-2 rounded font-bold">查看購物車</button>
+            </div>
+        </section>
+
+        <!-- 3. 產品頁面 (細節與規格) -->
+        <section id="page-product" class="hidden max-w-4xl mx-auto p-6 mt-10">
+            <button onclick="navigateTo('page-shop')" class="text-gray-500 mb-4 hover:text-orange-500"><i class="ph ph-arrow-left"></i> 返回購物</button>
+            <div class="flex gap-8">
+                <div class="w-1/2 bg-gray-200 h-64 flex items-center justify-center text-gray-400">產品大圖</div>
+                <div class="w-1/2">
+                    <h2 class="text-2xl font-bold mb-2">Yonex 高階碳纖維球拍</h2>
+                    <p class="text-gray-600 mb-4">工廠資訊: 台灣代工廠 A 線</p>
+                    <div class="mb-4">
+                        <label class="block mb-2 font-medium">規格選單</label>
+                        <select class="w-full p-2 border rounded">
+                            <option>3U / G5</option>
+                            <option>4U / G5</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-4 mt-6">
+                        <input type="number" value="1" min="1" class="w-20 p-2 border rounded text-center">
+                        <button class="bg-orange-500 text-white px-6 py-2 rounded font-bold hover:bg-orange-600">加入採購車</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 購物車頁面 -->
+        <section id="page-cart" class="hidden max-w-4xl mx-auto p-6 mt-10">
+            <h2 class="text-2xl font-bold mb-6">購物車 - 即時結算</h2>
+            <div class="border rounded p-4 mb-6">
+                <!-- 動態渲染清單容器 -->
+                <div id="cart-items-container" class="mb-4"></div>
+                
+                <!-- 總計區塊 -->
+                <div class="text-right border-t pt-4">
+                    <p>小計: <span id="cart-subtotal">NT$ 0</span></p>
+                    <p class="text-gray-500 text-sm">+ 5% 營業稅: <span id="cart-tax">NT$ 0</span></p>
+                    <p class="text-xl font-bold text-orange-500 mt-2">總計: <span id="cart-total">NT$ 0</span></p>
+                </div>
+            </div>
+            <div class="text-right">
+                <button onclick="proceedToCheckout()" class="bg-orange-500 text-white px-8 py-3 rounded font-bold hover:bg-orange-600">前往結帳</button>
+            </div>
+        </section>
+
+        <!-- 5. 結帳頁面 -->
+        <section id="page-checkout" class="hidden max-w-xl mx-auto p-6 mt-10 border rounded shadow-md">
+            <h2 class="text-2xl font-bold mb-4">匯款與結帳資訊</h2>
+            <div class="bg-gray-100 p-4 rounded mb-6 text-sm">
+                <p>收款公司: ＯＯ貿易股份有限公司</p>
+                <p>銀行代碼: 808 (玉山銀行)</p>
+                <p>帳戶號碼: 1234-567-890123</p>
+                <!-- 新增 id="checkout-total-display" -->
+                <p class="text-orange-500 font-bold mt-2">應匯總額: <span id="checkout-total-display">NT$ 0</span></p>
+            </div>
+            <div class="space-y-4">
+                <!-- 新增 id="checkout-bank-last5" -->
+                <input type="text" id="checkout-bank-last5" placeholder="匯款帳戶後5碼 (必填)" class="w-full p-2 border rounded border-red-300" maxlength="5">
+                <!-- 新增 id="checkout-taxid" -->
+                <input type="text" id="checkout-taxid" placeholder="買方統一編號 (選填)" class="w-full p-2 border rounded">
+                
+                <button onclick="submitOrder()" class="w-full bg-orange-500 text-white px-8 py-3 rounded font-bold hover:bg-orange-600">確認送出表單</button>
+            </div>
+        </section>
+
+        <!-- 6. 我的訂單頁面 -->
+        <section id="page-orders" class="hidden max-w-4xl mx-auto p-6 mt-10">
+            <h2 class="text-2xl font-bold mb-6">我的訂單</h2>
+            <div class="flex border-b mb-6">
+                <button class="px-4 py-2 border-b-2 border-orange-500 font-bold text-orange-500">未付款</button>
+                <button class="px-4 py-2 text-gray-500 hover:text-orange-500">進行中</button>
+                <button class="px-4 py-2 text-gray-500 hover:text-orange-500">已完成</button>
+            </div>
+            <div class="border rounded p-4 text-center text-gray-500">
+                目前尚無訂單紀錄
+            </div>
+        </section>
+
+        <!-- 7. 管理員後台 (隱藏) -->
+        <section id="page-admin" class="hidden max-w-4xl mx-auto p-6 mt-10">
+            <h2 class="text-2xl font-bold mb-6 text-red-600">管理員後台</h2>
+            <!-- 預留功能擴充 -->
+        </section>
+
+    </main>
+
+    <!-- SPA 路由邏輯 -->
+    <script>
+        // 定義所有頁面的 ID
+        const pages = [
+            'page-login', 'page-shop', 'page-product', 
+            'page-cart', 'page-checkout', 'page-orders', 'page-admin'
+        ];
+
+        // 核心導覽函數
+        function navigateTo(targetPageId) {
+            // 隱藏所有頁面
+            pages.forEach(pageId => {
+                document.getElementById(pageId).classList.add('hidden');
+            });
+            // 顯示目標頁面
+            document.getElementById(targetPageId).classList.remove('hidden');
+
+            // 處理 Header 的顯示邏輯 (登入頁隱藏 Header)
+            if(targetPageId === 'page-login') {
+                document.getElementById('main-header').classList.add('hidden');
+            } else {
+                document.getElementById('main-header').classList.remove('hidden');
+            }
+            
+            window.scrollTo(0, 0); // 切換頁面後滾回頂部
+        }
+
+        // 模擬登入行為
+        function mockLogin() {
+            // 實務上這裡會呼叫 Supabase Auth
+            document.getElementById('header-company-name').innerText = "測試貿易公司";
+            document.getElementById('header-tax-id').innerText = "統編: 87654321";
+            navigateTo('page-shop');
+        }
+
+        // 模擬登出行為
+        function logout() {
+            navigateTo('page-login');
+        }
+
+        // 模擬送出結帳
+        function submitOrder() {
+            alert('訂單明細確認：\n訂單編號: AB12345\n金額: 13,650\n\n送出成功！');
+            navigateTo('page-orders');
+        }
+
+        // 預設載入顯示登入頁
+        window.onload = () => {
+            navigateTo('page-login');
+        }
+
+        // 全域購物車狀態
+        let cart = [];
+
+        // 格式化新台幣顯示
+        const formatCurrency = (num) => `NT$ ${num.toLocaleString('zh-TW')}`;
+
+        // 加入購物車
+        function addToCart(id, name, spec, price, addQty) {
+            const qty = parseInt(addQty);
+            if (qty <= 0) return;
+
+            // 尋找同產品且同規格的項目 (同個勾選項目)
+            const existingItemIndex = cart.findIndex(item => item.id === id && item.spec === spec);
+
+            if (existingItemIndex > -1) {
+                cart[existingItemIndex].quantity += qty;
+            } else {
+                cart.push({ id, name, spec, price, quantity: qty, checked: true }); // 預設勾選
+            }
+            
+            updateCartUI();
+            alert('已加入購物車');
+        }
+
+        // 增減數量或刪除
+        function updateQuantity(index, delta) {
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1); // 數量為0則移除
+            }
+            updateCartUI();
+        }
+
+        // 切換勾選狀態
+        function toggleCheck(index) {
+            cart[index].checked = !cart[index].checked;
+            updateCartUI();
+        }
+
+        // 重新渲染畫面與計算金額
+        function updateCartUI() {
+            const container = document.getElementById('cart-items-container');
+            container.innerHTML = '';
+            
+            let subtotal = 0;
+            let selectedCount = 0;
+
+            cart.forEach((item, index) => {
+                if (item.checked) {
+                    subtotal += (item.price * item.quantity);
+                    selectedCount += 1;
+                }
+
+                // 渲染單一項目
+                container.innerHTML += `
+                    <div class="flex justify-between items-center border-b pb-4 mb-4">
+                        <div class="flex items-center gap-4">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${index})" class="w-5 h-5 text-orange-500 cursor-pointer">
+                            <div>
+                                <p class="font-bold">${item.name}</p>
+                                <p class="text-sm text-gray-500">規格: ${item.spec}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <span class="text-gray-500">${formatCurrency(item.price)}</span>
+                            <div class="flex items-center border rounded">
+                                <button onclick="updateQuantity(${index}, -1)" class="px-3 py-1 hover:bg-gray-100">-</button>
+                                <span class="px-4 py-1 border-l border-r">${item.quantity}</span>
+                                <button onclick="updateQuantity(${index}, 1)" class="px-3 py-1 hover:bg-gray-100">+</button>
+                            </div>
+                            <span class="font-bold w-24 text-right">${formatCurrency(item.price * item.quantity)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 營業稅與總計計算[cite: 1]
+            const tax = Math.round(subtotal * 0.05);
+            const total = subtotal + tax;
+
+            // 更新購物車頁面數字
+            document.getElementById('cart-subtotal').innerText = formatCurrency(subtotal);
+            document.getElementById('cart-tax').innerText = formatCurrency(tax);
+            document.getElementById('cart-total').innerText = formatCurrency(total);
+
+            // 同步更新主畫面底部固定區域的購物車摘要[cite: 1]
+            const bottomSummary = document.querySelector('.fixed.bottom-0 span');
+            if(bottomSummary) {
+                bottomSummary.innerText = `已選: ${selectedCount} 項 | 總計: ${formatCurrency(total)}`;
+            }
+        }
+        
+        // 前往結帳驗證邏輯
+        function proceedToCheckout() {
+            const hasCheckedItems = cart.some(item => item.checked);
+            if (!hasCheckedItems) {
+                alert('請至少勾選一項商品進行結帳');
+                return;
+            }
+            // TODO: 將勾選的項目寫入未付款訂單資料庫
+            navigateTo('page-checkout');
+        }
+
+        // 測試用：模擬從產品頁點擊「加入採購車」
+        // addToCart('P001', 'Victor 頂級比賽用球', '標準速 (77)', 650, 10);
+    </script>
+</body>
 </html>
