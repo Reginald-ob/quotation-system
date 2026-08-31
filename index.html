@@ -418,15 +418,6 @@
                 navigateTo('page-shop');
             }
 
-            function handleAuthSubmit() {
-                const authCode = document.getElementById('auth-code').value.trim();
-                if (authCode) {
-                    registerUser(); 
-                } else {
-                    loginUser();    
-                }
-            }
-
             function logout() {
                 currentUserId = null;
                 currentUserRole = 'user';
