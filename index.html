@@ -49,7 +49,7 @@
                 <input type="text" id="login-account" placeholder="帳號" class="w-full p-2 border rounded">
                 <input type="password" id="login-password" placeholder="密碼" class="w-full p-2 border rounded">
                 <!-- 橘色按鈕風格 -->
-                <button onclick="mockLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition">
+                <button onclick="handleAuthSubmit()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition">
                     登入 / 註冊
                 </button>
             </div>
@@ -630,26 +630,6 @@
         let currentUserRole = 'user';
         let mockAuthCodesDB = []; // 模擬授權代碼資料庫
 
-        // 覆寫 mockLogin() 加入權限隔離
-        function mockLogin() {
-            const acc = document.getElementById('login-account').value;
-            const pass = document.getElementById('login-password').value;
-
-            // 測試帳號驗證邏輯[cite: 1]
-            if (acc === 'daidai' && pass === 'admin') {
-                currentUserRole = 'admin';
-                document.getElementById('header-company-name').innerText = "系統管理員";
-                document.getElementById('header-tax-id').innerText = "";
-                document.getElementById('nav-admin-btn').classList.remove('hidden'); // 顯示後台入口
-            } else {
-                currentUserRole = 'user';
-                document.getElementById('header-company-name').innerText = "測試貿易公司";
-                document.getElementById('header-tax-id').innerText = "統編: 87654321";
-                document.getElementById('nav-admin-btn').classList.add('hidden');
-            }
-            navigateTo('page-shop');
-        }
-
         // 修改原有的 navigateTo() 增加防護
         const originalNavigateTo = navigateTo;
         navigateTo = function(targetPageId) {
@@ -824,20 +804,6 @@ async function fetchAdminOrders() {
         fetchAdminOrders(); // 重新拉取以更新畫面
     }
     
-        // 管理員執行更新報價與備註[cite: 1]
-        function updateOrderByAdmin(orderId) {
-            const orderIndex = ordersList.findIndex(o => o.orderId === orderId);
-            if (orderIndex > -1) {
-                const newPrice = document.getElementById(`admin-price-${orderId}`).value;
-                const newNote = document.getElementById(`admin-note-${orderId}`).value;
-                
-                ordersList[orderIndex].totalAmount = Number(newPrice);
-                ordersList[orderIndex].adminNote = newNote;
-                
-                alert(`訂單 ${orderId} 更新成功！`);
-                renderAdminOrders();
-            }
-        }
     </script>
 </body>
 </html>
