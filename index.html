@@ -225,8 +225,8 @@
         }
 
         // 初始化 Supabase 客戶端 (請替換為你的專案參數)
-        const SUPABASE_URL = 'https://你的專案ID.supabase.co';
-        const SUPABASE_ANON_KEY = '你的_ANON_KEY';
+        const SUPABASE_URL = 'https://gelmetpyrvvqiaqdusmg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlbG1ldHB5cnZ2cWlhcWR1c21nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTI2OTgsImV4cCI6MjEwMzA2ODY5OH0.PZDFy2RcH2OQjx_1fksCMySQDFWRibDSgDK2JJ4rAC4';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // 全域狀態更新
@@ -362,12 +362,46 @@
             navigateTo('page-login');
         }
 
-        // 模擬送出結帳
-        function submitOrder() {
-            alert('訂單明細確認：\n訂單編號: AB12345\n金額: 13,650\n\n送出成功！');
+        // 階段二：更新資料庫狀態為「進行中」
+        async function submitOrder() {
+            if (!pendingOrder || !pendingOrder.id) {
+                alert('無效的訂單狀態');
+                return;
+            }
+
+            const bankInput = document.getElementById('checkout-bank-last5').value.trim();
+            const taxIdInput = document.getElementById('checkout-taxid').value.trim();
+
+            // 驗證後 5 碼為必填[cite: 1]
+            if (!bankInput || bankInput.length !== 5 || isNaN(bankInput)) {
+                alert('請填入正確的帳戶後 5 位數字 (必填)');
+                return;
+            }
+
+            // 執行 UPDATE 更新 Supabase 訂單資料
+            const { error: updateError } = await supabase
+                .from('orders')
+                .update({
+                    bank_last_5: bankInput,
+                    tax_id: taxIdInput,
+                    status: 'processing'
+                })
+                .eq('id', pendingOrder.id);
+
+            if (updateError) {
+                console.error('匯款資料更新失敗:', updateError);
+                alert('送出失敗，請重試');
+                return;
+            }
+
+            // 清空表單與當前操作狀態
+            document.getElementById('checkout-bank-last5').value = '';
+            document.getElementById('checkout-taxid').value = '';
+            pendingOrder = null; 
+
+            alert('匯款資訊送出成功！');
             navigateTo('page-orders');
         }
-
         // 預設載入顯示登入頁
         window.onload = () => {
             navigateTo('page-login');
@@ -465,49 +499,83 @@
             }
         }
         
-        // 前往結帳驗證邏輯
-        function proceedToCheckout() {
-            const hasCheckedItems = cart.some(item => item.checked);
-            if (!hasCheckedItems) {
+        // 生成 2 位英文 + 5 位數字的訂單編號[cite: 1]
+        function generateOrderNumber() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const letters = chars.charAt(Math.floor(Math.random() * 26)) + chars.charAt(Math.floor(Math.random() * 26));
+            const digits = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+            return letters + digits;
+        }
+
+        // 階段一：寫入資料庫建立「未付款」訂單
+        async function proceedToCheckout() {
+            if (!currentUserId) {
+                alert('請先登入');
+                return;
+            }
+
+            const checkedItems = cart.filter(item => item.checked);
+            if (checkedItems.length === 0) {
                 alert('請至少勾選一項商品進行結帳');
                 return;
             }
-            // TODO: 將勾選的項目寫入未付款訂單資料庫
-            navigateTo('page-checkout');
-        }
 
-        // 測試用：模擬從產品頁點擊「加入採購車」
-        // addToCart('P001', 'Victor 頂級比賽用球', '標準速 (77)', 650, 10);
+            // 計算總額與稅額
+            const subtotal = checkedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = Math.round(subtotal * 0.05);
+            const totalAmount = subtotal + tax;
+            const orderNumber = generateOrderNumber();
 
-        // 預設選中「未付款」標籤
-        let currentOrderTab = 'pending_payment';
+            // 1. 寫入 orders 主表
+            const { data: orderData, error: orderError } = await supabase
+                .from('orders')
+                .insert([{
+                    order_number: orderNumber,
+                    user_id: currentUserId,
+                    total_amount: totalAmount,
+                    tax_amount: tax,
+                    status: 'pending_payment' // 初始狀態為未付款
+                }])
+                .select()
+                .single(); // 取得剛建立的該筆訂單資料 (包含 UUID)
 
-        // 切換標籤狀態
-        function switchOrderTab(tabStatus) {
-            currentOrderTab = tabStatus;
-            
-            // 更新 Tab 樣式
-            const tabs = ['pending_payment', 'processing', 'completed'];
-            tabs.forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if (t === tabStatus) {
-                    btn.className = "px-4 py-2 border-b-2 border-orange-500 font-bold text-orange-500";
-                } else {
-                    btn.className = "px-4 py-2 text-gray-500 hover:text-orange-500";
-                }
-            });
-            
-            renderOrders();
-        }
-
-        // 重新接續未付款訂單
-        function continueCheckout(orderId) {
-            const orderToCheckout = ordersList.find(o => o.orderId === orderId);
-            if (orderToCheckout) {
-                pendingOrder = orderToCheckout;
-                document.getElementById('checkout-total-display').innerText = formatCurrency(pendingOrder.totalAmount);
-                navigateTo('page-checkout');
+            if (orderError) {
+                console.error('訂單建立失敗:', orderError);
+                alert('系統錯誤，無法建立訂單');
+                return;
             }
+
+            // 2. 準備 order_items 明細資料
+            const orderItemsData = checkedItems.map(item => ({
+                order_id: orderData.id,
+                product_id: item.id,
+                spec: item.spec,
+                quantity: item.quantity,
+                unit_price: item.price
+            }));
+
+            // 3. 批次寫入 order_items 表
+            const { error: itemsError } = await supabase
+                .from('order_items')
+                .insert(orderItemsData);
+
+            if (itemsError) {
+                console.error('明細寫入失敗:', itemsError);
+                alert('訂單明細寫入失敗，請聯絡管理員');
+                return;
+            }
+
+            // 將資料庫返回的訂單物件暫存，供結帳頁面使用
+            pendingOrder = orderData; 
+
+            // 商品不保留在購物車，清空已結帳項目[cite: 1]
+            cart = cart.filter(item => !item.checked);
+            updateCartUI(); 
+
+            // 動態更新結帳頁面總額顯示
+            document.getElementById('checkout-total-display').innerText = formatCurrency(totalAmount);
+            
+            navigateTo('page-checkout');
         }
 
         // 渲染訂單列表
@@ -598,14 +666,20 @@
             originalNavigateTo(targetPageId);
         }
 
-        // 後台視圖切換
+        // 修改後台視圖切換，加入自動抓取資料邏輯
         function switchAdminView(view) {
             document.getElementById('admin-view-auth').classList.add('hidden');
             document.getElementById('admin-view-orders').classList.add('hidden');
             document.getElementById(`admin-view-${view}`).classList.remove('hidden');
+
+            if (view === 'auth') {
+                fetchAuthCodes(); // 載入真實資料庫代碼
+            } else if (view === 'orders') {
+                // TODO: 稍後串接拉取真實資料庫的未結帳訂單
+            }
         }
 
-        // 功能 a: 生成 10 碼授權代碼
+        // 功能 a: 生成 10 碼授權代碼 (維持原純前端邏輯)
         function generateRandomAuthCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let code = '';
@@ -615,20 +689,63 @@
             document.getElementById('new-auth-code').value = code;
         }
 
-        function addAuthCode() {
+        // 功能 a: 寫入授權代碼至 Supabase
+        async function addAuthCode() {
             const code = document.getElementById('new-auth-code').value.trim();
-            if (code.length !== 10) {
+            if (code.length !== 10) { // 10碼英文+數字的授權代碼[cite: 1]
                 alert('授權代碼必須剛好 10 碼');
                 return;
             }
-            mockAuthCodesDB.push({ code, isUsed: false });
+
+            const { error } = await supabase
+                .from('auth_codes')
+                .insert([{ code: code, is_used: false }]);
+
+            if (error) {
+                console.error('寫入失敗:', error);
+                // 攔截主鍵重複錯誤
+                if (error.code === '23505') { 
+                    alert('此代碼已存在，請重新生成');
+                } else {
+                    alert('寫入失敗，請確認管理員權限設定');
+                }
+                return;
+            }
+
             document.getElementById('new-auth-code').value = '';
-            
-            // 更新顯示
-            document.getElementById('admin-auth-list').innerHTML = mockAuthCodesDB.map(c => 
-                `<div class="border-b py-1">代碼: <strong>${c.code}</strong> (狀態: ${c.isUsed ? '已使用' : '未使用'})</div>`
-            ).join('');
             alert('代碼新增成功');
+            fetchAuthCodes(); // 重新拉取並更新列表
+        }
+
+        // 功能 a: 從 Supabase 拉取授權代碼清單
+        async function fetchAuthCodes() {
+            const container = document.getElementById('admin-auth-list');
+            container.innerHTML = '<p class="text-gray-500">載入中...</p>';
+
+            const { data, error } = await supabase
+                .from('auth_codes')
+                .select('code, is_used')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('讀取授權代碼失敗:', error);
+                container.innerHTML = '<p class="text-red-500">無法載入代碼清單</p>';
+                return;
+            }
+
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">目前尚無授權代碼</p>';
+                return;
+            }
+
+            container.innerHTML = data.map(c => 
+                `<div class="border-b py-2 flex justify-between">
+                    <span>代碼: <strong class="${c.is_used ? 'text-gray-400' : 'text-green-600'} tracking-wider">${c.code}</strong></span>
+                    <span class="text-sm ${c.is_used ? 'text-gray-500' : 'text-orange-500 font-bold'}">
+                        ${c.is_used ? '已使用' : '未使用'}
+                    </span>
+                </div>`
+            ).join('');
         }
 
         // 功能 b: 渲染並更新訂單報價
