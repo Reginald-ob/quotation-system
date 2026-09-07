@@ -1,56 +1,44 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <title>登入測試</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>批發採購系統</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="login-view">
-        <h2>批發採購系統登入</h2>
-        <input type="email" id="auth-email" placeholder="帳號 (Email)" value="daidai@admin.com">
-        <input type="password" id="auth-password" placeholder="密碼">
-        <button id="login-btn">登入</button>
+  <!-- 登入視圖 -->
+  <div id="login-view">
+    <h2>批發採購系統</h2>
+    <input type="email" id="auth-email" placeholder="帳號 (Email)">
+    <input type="password" id="auth-password" placeholder="密碼">
+    <button id="login-btn" class="btn-orange">登入</button>
+  </div>
+
+  <!-- 主應用視圖 -->
+  <div id="app-view">
+    <div class="header">
+      <h2>批發採購報價單</h2>
+      <div id="user-info"></div>
+    </div>
+    
+    <div class="layout-body">
+      <div class="sidebar" id="category-sidebar">
+        <!-- 點擊觸發 API 請求不同 Sheet -->
+        <button class="category-btn active" onclick="loadCategory('羽球拍')">羽球拍</button>
+        <button class="category-btn" onclick="loadCategory('羽球鞋')">羽球鞋</button>
+      </div>
+      <div class="product-grid" id="product-grid">
+        <!-- 產品卡片由 JS 動態生成 -->
+      </div>
     </div>
 
-    <!-- 關鍵修正：必須加入 type="module" -->
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    <div class="cart-bar">
+      <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
+      <button class="btn-orange" id="checkout-btn">前往結帳</button>
+    </div>
+  </div>
 
-        // 請替換為真實金鑰
-        const supabaseUrl = 'https://dtiqhctodehiqjodupwg.supabase.co'; 
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aXFoY3RvZGVoaXFqb2R1cHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Njg3NjUsImV4cCI6MjEwNDM0NDc2NX0.H1Do3LD82XgkPGLL5Inp5zMu4PlPQ2vqE7vSO00H0OI';
-        const supabase = createClient(supabaseUrl, supabaseKey);
-
-        async function executeLogin() {
-            console.log('1. 按鈕已成功點擊');
-            
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            
-            console.log('2. 讀取到輸入值:', email, password ? '已輸入密碼' : '未輸入密碼');
-
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-
-            if (error) {
-                console.error('3. 登入失敗 (Supabase 回傳錯誤):', error.message);
-            } else {
-                console.log('3. 登入成功，取得資料:', data.user);
-            }
-        }
-
-        // 確保 HTML 元素渲染完畢後才綁定按鈕
-        document.addEventListener('DOMContentLoaded', () => {
-            const loginBtn = document.getElementById('login-btn');
-            if (loginBtn) {
-                loginBtn.addEventListener('click', executeLogin);
-                console.log('系統提示: 按鈕事件綁定成功，可開始測試');
-            } else {
-                console.error('系統錯誤: 找不到 id="login-btn" 的按鈕');
-            }
-        });
-    </script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
