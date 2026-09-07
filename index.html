@@ -1,7 +1,56 @@
-<!-- login.html 或 SPA 登入視圖區塊 -->
-<div id="login-view">
-  <h2>批發採購系統登入</h2>
-  <input type="email" id="auth-email" placeholder="帳號 (Email)">
-  <input type="password" id="auth-password" placeholder="密碼">
-  <button id="login-btn">登入</button>
-</div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>登入測試</title>
+</head>
+<body>
+    <div id="login-view">
+        <h2>批發採購系統登入</h2>
+        <input type="email" id="auth-email" placeholder="帳號 (Email)" value="daidai@admin.com">
+        <input type="password" id="auth-password" placeholder="密碼">
+        <button id="login-btn">登入</button>
+    </div>
+
+    <!-- 關鍵修正：必須加入 type="module" -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // 請替換為真實金鑰
+        const supabaseUrl = 'https://dtiqhctodehiqjodupwg.supabase.co'; 
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aXFoY3RvZGVoaXFqb2R1cHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Njg3NjUsImV4cCI6MjEwNDM0NDc2NX0.H1Do3LD82XgkPGLL5Inp5zMu4PlPQ2vqE7vSO00H0OI';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        async function executeLogin() {
+            console.log('1. 按鈕已成功點擊');
+            
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            
+            console.log('2. 讀取到輸入值:', email, password ? '已輸入密碼' : '未輸入密碼');
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                console.error('3. 登入失敗 (Supabase 回傳錯誤):', error.message);
+            } else {
+                console.log('3. 登入成功，取得資料:', data.user);
+            }
+        }
+
+        // 確保 HTML 元素渲染完畢後才綁定按鈕
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', executeLogin);
+                console.log('系統提示: 按鈕事件綁定成功，可開始測試');
+            } else {
+                console.error('系統錯誤: 找不到 id="login-btn" 的按鈕');
+            }
+        });
+    </script>
+</body>
+</html>
