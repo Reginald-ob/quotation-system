@@ -1,4 +1,6 @@
-// 初始化 Supabase 客戶端
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// 1. 初始化 Supabase (請於 Vercel 環境變數配置或暫時替換為實際金鑰)
 const supabaseUrl = 'https://dtiqhctodehiqjodupwg.supabase.co'; 
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0aXFoY3RvZGVoaXFqb2R1cHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Njg3NjUsImV4cCI6MjEwNDM0NDc2NX0.H1Do3LD82XgkPGLL5Inp5zMu4PlPQ2vqE7vSO00H0OI';
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -21,7 +23,10 @@ async function executeLogin() {
   const password = document.getElementById('auth-password').value;
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   
-  if (error) return alert('登入失敗');
+  if (error) {
+    alert('登入失敗: ' + error.message);
+    return;
+  }
   initAppView(data.user);
 }
 
@@ -44,6 +49,7 @@ window.loadCategory = async function(categorySheet) {
     currentProducts = await response.json();
     renderProductGrid(currentProducts);
   } catch (error) {
+    console.error(error);
     grid.innerHTML = '<h3 style="color:red;">資料載入失敗。</h3>';
   }
 };
@@ -98,7 +104,10 @@ window.updateQty = function(productId, specIndex, change) {
   if (newQty < 0) newQty = 0;
   
   cartState[productId].specs[specIndex].qty = newQty;
-  document.getElementById(`qty-${productId}-${index}`).innerText = newQty;
+  
+  // 修正變數未定義錯誤，精準更新 DOM 數量
+  const qtyElement = document.getElementById(`qty-${productId}-${specIndex}`);
+  if (qtyElement) qtyElement.innerText = newQty;
 
   if (newQty === 0) delete cartState[productId].specs[specIndex];
   if (Object.keys(cartState[productId].specs).length === 0) delete cartState[productId];
