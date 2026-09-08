@@ -45,7 +45,7 @@ window.loadCategory = async function(categorySheet) {
   grid.innerHTML = '<h3>資料載入中...</h3>';
   
   try {
-    const response = await fetch(`/api/getProducts?sheet=${categorySheet}`);
+    const response = await fetch(`https://quotation-system-xi-blue.vercel.app/api/getProducts?sheet=${categorySheet}`);
     if (!response.ok) throw new Error('API 請求失敗');
     
     currentProducts = await response.json();
