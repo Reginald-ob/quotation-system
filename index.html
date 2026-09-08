@@ -39,6 +39,30 @@
     </div>
   </div>
 
+  <!-- 結帳與匯款視圖 (預設隱藏) -->
+  <div id="checkout-view" style="display: none; padding: 2rem; max-width: 600px; margin: 50px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <h2>訂單已成立</h2>
+    <div id="checkout-summary" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+      <!-- 動態插入訂單摘要 -->
+    </div>
+    
+    <!-- 門檻 > $500：顯示匯款表單 -->
+    <div id="remittance-form" style="display: none; display: flex; flex-direction: column; gap: 10px;">
+      <h3>填寫匯款資料</h3>
+      <p style="color: #666; font-size: 0.9em;">收款銀行：000 (測試銀行) / 帳號：1234567890</p>
+      <input type="text" id="bank-last-5" placeholder="匯款帳號後 5 碼 (必填)" maxlength="5" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+      <input type="text" id="tax-id" placeholder="統一編號 (非必填)" maxlength="8" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+      <button class="btn-orange" id="submit-remittance-btn">確認送出匯款資訊</button>
+    </div>
+
+    <!-- 門檻 <= $500：顯示黃字警告 -->
+    <div id="low-amount-warning" style="display: none; color: #856404; background: #fff3cd; padding: 15px; border-radius: 4px; font-weight: bold;">
+      ⚠️ 該訂單未達預付貨款門檻，入庫後連同運費合併結帳。
+    </div>
+
+    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px; cursor: pointer; width: 100%;">返回購物 / 查看我的訂單</button>
+  </div>
+
   <script type="module" src="main.js"></script>
 </body>
 </html>

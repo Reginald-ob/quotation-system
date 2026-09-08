@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+let currentUser = null; // 用於儲存當前登入使用者資訊
 
 // 1. 初始化 Supabase (請於 Vercel 環境變數配置或暫時替換為實際金鑰)
 const supabaseUrl = 'https://dtiqhctodehiqjodupwg.supabase.co'; 
@@ -31,6 +32,7 @@ async function executeLogin() {
 }
 
 function initAppView(user) {
+  currentUser = user;
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('app-view').style.display = 'flex';
   document.getElementById('user-info').innerText = `帳號: ${user.email}`;
@@ -128,4 +130,88 @@ function calculateCartTotal() {
   }
   document.getElementById('cart-total-qty').innerText = totalQty;
   document.getElementById('cart-total-amount').innerText = totalAmount;
+}
+
+// ================= 5. 結帳與寫入資料庫邏輯 =================
+document.getElementById('checkout-btn').addEventListener('click', processCheckout);
+
+async function processCheckout() {
+  const totalAmountStr = document.getElementById('cart-total-amount').innerText;
+  const baseAmount = parseInt(totalAmountStr);
+  
+  if (baseAmount === 0) return alert('請至少選擇一項商品且數量大於 0');
+
+  // 1. 計算金額與生成編號
+  const taxAmount = Math.round(baseAmount * 0.05);
+  const finalTotal = baseAmount + taxAmount;
+  
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const randomLetters = letters[Math.floor(Math.random() * 26)] + letters[Math.floor(Math.random() * 26)];
+  const randomNumbers = Math.floor(10000 + Math.random() * 90000);
+  const orderId = `${randomLetters}${randomNumbers}`; // 2英+5數
+
+  // 2. 雙軌判斷門檻 ($500)
+  const isPayable = finalTotal > 500;
+  const adminNote = isPayable ? null : '該訂單未達預付貨款門檻，入庫後連同運費合併結帳';
+
+  // 3. 序列化商品明細
+  const orderItems = [];
+  for (const pid in cartState) {
+    if (cartState[pid].isChecked) {
+      orderItems.push({
+        product_id: pid,
+        name: cartState[pid].name,
+        specs: Object.values(cartState[pid].specs)
+      });
+    }
+  }
+
+  // 4. 寫入 Supabase
+  const payload = {
+    order_id: orderId,
+    user_id: currentUser.id,
+    order_items: orderItems,
+    total_amount: finalTotal,
+    status: '未付款',
+    order_type: 'normal',
+    is_payable: isPayable,
+    admin_note: adminNote
+  };
+
+  document.getElementById('checkout-btn').innerText = '處理中...';
+  
+  const { error } = await supabase.from('orders').insert([payload]);
+  
+  document.getElementById('checkout-btn').innerText = '前往結帳';
+
+  if (error) {
+    console.error(error);
+    return alert('建立訂單失敗，請稍後再試。');
+  }
+
+  // 5. 建單成功：清空本地購物車
+  cartState = {};
+  calculateCartTotal();
+  // 可選：重新渲染畫面上的數量歸零，或依賴跳轉後重新載入
+
+  // 6. 視圖切換與 UI 渲染
+  document.getElementById('app-view').style.display = 'none';
+  document.getElementById('checkout-view').style.display = 'block';
+  
+  document.getElementById('checkout-summary').innerHTML = `
+    <p>訂單編號: <strong>${orderId}</strong></p>
+    <p>商品總計: $${baseAmount}</p>
+    <p>營業稅 (5%): $${taxAmount}</p>
+    <h3 style="color: var(--primary-orange);">應付總額: $${finalTotal}</h3>
+  `;
+
+  if (isPayable) {
+    document.getElementById('remittance-form').style.display = 'flex';
+    document.getElementById('low-amount-warning').style.display = 'none';
+    // 將 orderId 暫存於按鈕，供送出匯款表單時使用
+    document.getElementById('submit-remittance-btn').dataset.orderId = orderId;
+  } else {
+    document.getElementById('remittance-form').style.display = 'none';
+    document.getElementById('low-amount-warning').style.display = 'block';
+  }
 }
