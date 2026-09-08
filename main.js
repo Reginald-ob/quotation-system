@@ -215,3 +215,132 @@ async function processCheckout() {
     document.getElementById('low-amount-warning').style.display = 'block';
   }
 }
+
+// ================= 6. 匯款表單送出邏輯 =================
+document.getElementById('submit-remittance-btn')?.addEventListener('click', async (e) => {
+  const btn = e.target;
+  const orderId = btn.dataset.orderId;
+  const bankLast5 = document.getElementById('bank-last-5').value;
+  const taxId = document.getElementById('tax-id').value;
+
+  if (!bankLast5 || bankLast5.length !== 5) return alert('請填寫正確的帳戶後 5 碼數字');
+
+  btn.innerText = '處理中...';
+  btn.disabled = true;
+
+  // 執行 UPDATE 操作，將狀態改為「匯款待查」
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      status: '匯款待查',
+      account_last_5: bankLast5,
+      tax_id: taxId
+    })
+    .eq('order_id', orderId)
+    .eq('user_id', currentUser.id); // 確保只能更新自己的訂單
+
+  btn.innerText = '確認送出匯款資訊';
+  btn.disabled = false;
+
+  if (error) {
+    console.error(error);
+    return alert('匯款資訊送出失敗，請稍後再試。');
+  }
+
+  alert('匯款資訊已成功送出，等待管理員核帳。');
+  loadMyOrders(); // 成功後跳轉至我的訂單頁面
+});
+
+// ================= 7. 我的訂單與視圖切換邏輯 =================
+let allMyOrders = []; // 暫存歷史訂單
+
+// 切換回購物主畫面
+window.showAppView = function() {
+  document.getElementById('checkout-view').style.display = 'none';
+  document.getElementById('orders-view').style.display = 'none';
+  document.getElementById('app-view').style.display = 'flex';
+};
+
+// 載入我的訂單
+window.loadMyOrders = async function() {
+  document.getElementById('app-view').style.display = 'none';
+  document.getElementById('checkout-view').style.display = 'none';
+  document.getElementById('orders-view').style.display = 'block';
+  
+  const container = document.getElementById('orders-list-container');
+  container.innerHTML = '<p>訂單載入中...</p>';
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false }); // RLS 規則已限制僅能撈取自己的訂單
+
+  if (error) {
+    console.error(error);
+    return container.innerHTML = '<p style="color:red;">載入失敗</p>';
+  }
+
+  allMyOrders = data;
+  renderOrdersList('未付款'); // 預設顯示未付款分頁
+};
+
+// 渲染指定狀態的訂單列表
+window.renderOrdersList = function(statusCategory) {
+  const container = document.getElementById('orders-list-container');
+  container.innerHTML = '';
+
+  // 過濾訂單 (將「匯款待查」歸類在「進行中」分頁顯示)
+  const filteredOrders = allMyOrders.filter(order => {
+    if (statusCategory === '進行中') return order.status === '進行中' || order.status === '匯款待查';
+    return order.status === statusCategory;
+  });
+
+  if (filteredOrders.length === 0) {
+    return container.innerHTML = `<p>目前沒有${statusCategory}的訂單。</p>`;
+  }
+
+  filteredOrders.forEach(order => {
+    const isPayable = order.is_payable;
+    
+    // 生成商品明細 HTML
+    const itemsHtml = order.order_items.map(item => `
+      <div style="font-size: 0.9em; border-bottom: 1px dashed #ccc; padding: 5px 0;">
+        <strong>${item.name}</strong><br>
+        ${item.specs.map(s => `<span style="display:inline-block; margin-right:10px;">- ${s.specName} (x${s.qty}) : $${s.qty * s.price}</span>`).join('')}
+      </div>
+    `).join('');
+
+    const card = document.createElement('div');
+    card.style = 'border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa;';
+    
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-weight: bold; color: var(--primary-orange);">訂單編號: ${order.order_id}</span>
+        <span style="background: #eee; padding: 3px 8px; border-radius: 4px; font-size: 0.85em;">${order.status}</span>
+      </div>
+      ${itemsHtml}
+      <div style="margin-top: 10px; font-weight: bold; text-align: right;">
+        總計金額 (含稅): $${order.total_amount}
+      </div>
+      ${!isPayable && order.status === '未付款' ? `<div style="color: #856404; background: #fff3cd; padding: 8px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">${order.admin_note}</div>` : ''}
+      ${isPayable && order.status === '未付款' ? `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="resumeCheckout('${order.order_id}', ${order.total_amount})">前往匯款</button>` : ''}
+    `;
+    container.appendChild(card);
+  });
+};
+
+// 恢復中斷的匯款流程
+window.resumeCheckout = function(orderId, totalAmount) {
+  document.getElementById('orders-view').style.display = 'none';
+  document.getElementById('checkout-view').style.display = 'block';
+  document.getElementById('remittance-form').style.display = 'flex';
+  document.getElementById('low-amount-warning').style.display = 'none';
+  
+  document.getElementById('checkout-summary').innerHTML = `
+    <p>訂單編號: <strong>${orderId}</strong></p>
+    <h3 style="color: var(--primary-orange);">應付總額: $${totalAmount}</h3>
+  `;
+  document.getElementById('submit-remittance-btn').dataset.orderId = orderId;
+};
+
+//測試用https://sheets.googleapis.com/v4/spreadsheets/1nXuJtot7pXcsOjs_yvZR4QDFFNqFmlwtWWxikFiiW_Q/values/羽球拍?key=AIzaSyAJe1dt2zGtdsBwSTmNq-cXSKAY1UogA7A](https://sheets.googleapis.com/v4/spreadsheets/1nXuJtot7pXcsOjs_yvZR4QDFFNqFmlwtWWxikFiiW_Q/values/羽球拍?key=AIzaSyAJe1dt2zGtdsBwSTmNq-cXSKAY1UogA7A
