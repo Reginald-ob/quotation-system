@@ -269,19 +269,25 @@ window.showAppView = function() {
   document.getElementById('app-view').style.display = 'flex';
 };
 
-// 載入我的訂單
+// 載入我的訂單 (更新：每次載入時重置標籤顏色至「未付款」)
 window.loadMyOrders = async function() {
   document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'none';
+  document.getElementById('admin-view').style.display = 'none';
   document.getElementById('orders-view').style.display = 'block';
   
   const container = document.getElementById('orders-list-container');
   container.innerHTML = '<p>訂單載入中...</p>';
 
+  // 重置分頁按鈕 UI 狀態為第一項 (未付款)
+  const tabs = document.querySelectorAll('.order-tab-btn');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  if(tabs[0]) tabs[0].classList.add('active'); 
+
   const { data, error } = await supabase
     .from('orders')
     .select('*')
-    .order('created_at', { ascending: false }); // RLS 規則已限制僅能撈取自己的訂單
+    .order('created_at', { ascending: false }); 
 
   if (error) {
     console.error(error);
@@ -289,7 +295,20 @@ window.loadMyOrders = async function() {
   }
 
   allMyOrders = data;
-  renderOrdersList('未付款'); // 預設顯示未付款分頁
+  renderOrdersList('未付款'); 
+};
+
+// 處理標籤點擊後的顏色切換與資料渲染
+window.switchOrderTab = function(btnElement, statusCategory) {
+  // 1. 移除所有訂單分頁標籤的 active 狀態
+  const tabs = document.querySelectorAll('.order-tab-btn');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  
+  // 2. 將當前點擊的標籤加上 active 狀態 (改變橘色邊框)
+  btnElement.classList.add('active');
+  
+  // 3. 呼叫原本的渲染邏輯重新顯示卡片
+  renderOrdersList(statusCategory);
 };
 
 // 渲染指定狀態的訂單列表
@@ -318,6 +337,28 @@ window.renderOrdersList = function(statusCategory) {
       </div>
     `).join('');
 
+    // --- 前端邏輯：判定備註與改價狀態 ---
+    const isLowAmount = !isPayable && order.status === '未付款';
+    // 若 admin_note 存在 (包含空字串 "")，且不是系統預設警告，代表管理員已操作改價/備註
+    const isAdjusted = order.admin_note !== null && 
+                       order.admin_note !== undefined && 
+                       order.admin_note !== '該訂單未達預付貨款門檻，入庫後連同運費合併結帳';
+    
+    let warningHtml = '';
+    if (isLowAmount) {
+      // 系統預設：未達門檻黃字警告
+      warningHtml = `<div style="color: #856404; background: #fff3cd; padding: 8px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">${order.admin_note}</div>`;
+    } else if (isAdjusted) {
+      // 管理員改價：紅字警告與備註顯示
+      warningHtml = `
+        <div style="color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">
+          <strong style="display: block; margin-bottom: 5px;">⚠️ 訂單已改價，匯款前請務必確認金額無誤！</strong>
+          ${order.admin_note.trim() !== '' ? `<span style="color: #333;">管理員備註: ${order.admin_note}</span>` : ''}
+        </div>
+      `;
+    }
+    // ------------------------------------
+
     const card = document.createElement('div');
     card.style = 'border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa;';
     
@@ -330,7 +371,7 @@ window.renderOrdersList = function(statusCategory) {
       <div style="margin-top: 10px; font-weight: bold; text-align: right;">
         總計金額 (含稅): $${order.total_amount}
       </div>
-      ${!isPayable && order.status === '未付款' ? `<div style="color: #856404; background: #fff3cd; padding: 8px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">${order.admin_note}</div>` : ''}
+      ${warningHtml}
       ${isPayable && order.status === '未付款' ? `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="resumeCheckout('${order.order_id}', ${order.total_amount})">前往匯款</button>` : ''}
     `;
     container.appendChild(card);

@@ -71,22 +71,26 @@
 
     <!-- 我的訂單視圖 (預設隱藏) -->
     <div id="orders-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+      
+      <!-- 標題與返回按鈕列 -->
+      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+        <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回上一頁</button>
+        <h2 style="margin: 0;">我的訂單</h2>
+      </div>
+      
+      <!-- 狀態標籤分頁 (加入 order-tab-btn 與 switchOrderTab) -->
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+        <button class="category-btn order-tab-btn active" style="width: auto;" onclick="switchOrderTab(this, '未付款')">未付款</button>
+        <button class="category-btn order-tab-btn" style="width: auto;" onclick="switchOrderTab(this, '進行中')">進行中 (含待審核)</button>
+        <button class="category-btn order-tab-btn" style="width: auto;" onclick="switchOrderTab(this, '完成')">完成訂單</button>
+      </div>
 
-    <h2>我的訂單</h2>
+      <!-- 訂單列表容器 -->
+      <div id="orders-list-container">
+        <!-- JS 動態生成訂單卡片 -->
+      </div>
+    </div>
     
-    <!-- 狀態標籤分頁 -->
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-      <button class="category-btn active" style="width: auto;" onclick="renderOrdersList('未付款')">未付款</button>
-      <button class="category-btn" style="width: auto;" onclick="renderOrdersList('進行中')">進行中 (含待審核)</button>
-      <button class="category-btn" style="width: auto;" onclick="renderOrdersList('完成')">完成訂單</button>
-    </div>
-
-    <!-- 訂單列表容器 -->
-    <div id="orders-list-container">
-    <!-- JS 動態生成訂單卡片 -->
-    </div>
-  </div>
-
   <!-- 管理員後台視圖 (預設隱藏) -->
   <div id="admin-view" style="display: none; padding: 2rem; max-width: 900px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
     <h2 style="color: #dc3545;">管理員後台</h2>
