@@ -355,6 +355,7 @@ window.resumeCheckout = function(orderId, totalAmount) {
 
 window.loadAdminPanel = async function() {
   // 隱藏其他視圖
+  console.log("觸發進入後台");
   document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'none';
   document.getElementById('orders-view').style.display = 'none';
@@ -450,4 +451,10 @@ window.adminApprovePayment = async function(orderId) {
   if (error) return alert('核准失敗: ' + error.message);
   alert('已確認收款，訂單狀態轉為「進行中」。');
   loadAdminPanel(); // 重新載入列表
+};
+
+//登出
+window.logout = async function() {
+  await supabase.auth.signOut();
+  location.reload();
 };
