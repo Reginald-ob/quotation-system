@@ -29,11 +29,26 @@
     </div>
 
   <div class="layout-body">
-    <div class="sidebar" id="category-sidebar">
-      <!-- 點擊觸發 API 請求不同 Sheet -->
-      <button class="category-btn active" onclick="loadCategory('羽球拍')">羽球拍</button>
-      <button class="category-btn" onclick="loadCategory('羽球鞋')">羽球鞋</button>
-    </div>
+      <!-- 左側分類選單 -->
+      <div class="sidebar" id="category-sidebar" style="overflow-y: auto; max-height: calc(100vh - 100px);">
+        <button class="category-btn sidebar-btn active" onclick="switchCategory(this, '日用品')">日用品</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '家居軟裝')">家居軟裝</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '寵物用品')">寵物用品</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '行李箱包')">行李箱包</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '機能包')">機能包</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '輕奢女包')">輕奢女包</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '輕奢飾品')">輕奢飾品</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '學生文具')">學生文具</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '女裝')">女裝</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '男裝')">男裝</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '展店用品')">展店用品</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '辦公文具')">辦公文具</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '五金-手工具')">五金-手工具</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '家用五金')">家用五金</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '3C配件')">3C配件</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '家電')">家電</button>
+        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '傳統節慶')">傳統節慶</button>
+      </div>
     <div class="product-grid" id="product-grid">
         <!-- 產品卡片由 JS 動態生成 -->
     </div>

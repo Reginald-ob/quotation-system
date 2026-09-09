@@ -44,7 +44,7 @@ function initAppView(user) {
     adminBtn.style.display = adminEmails.includes(user.email) ? 'inline-block' : 'none';
   }
 
-  window.loadCategory('羽球拍'); 
+  window.loadCategory('日用品'); 
 }
 
 // 3. 資料獲取與渲染
@@ -62,6 +62,21 @@ window.loadCategory = async function(categorySheet) {
     console.error(error);
     grid.innerHTML = '<h3 style="color:red;">資料載入失敗。</h3>';
   }
+};
+
+// 側邊欄分類切換與樣式更新
+window.switchCategory = function(btnElement, categorySheet) {
+  // 1. 移除所有側邊欄按鈕的 active 狀態
+  const btns = document.querySelectorAll('.sidebar-btn');
+  btns.forEach(btn => btn.classList.remove('active'));
+  
+  // 2. 當前點擊的按鈕加上 active 狀態
+  if (btnElement) {
+    btnElement.classList.add('active');
+  }
+  
+  // 3. 執行資料載入
+  loadCategory(categorySheet);
 };
 
 function renderProductGrid(products) {
