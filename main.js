@@ -32,11 +32,19 @@ async function executeLogin() {
 }
 
 function initAppView(user) {
-  currentUser = user;
+  currentUser = user; 
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('app-view').style.display = 'flex';
   document.getElementById('user-info').innerText = `帳號: ${user.email}`;
-  window.loadCategory('羽球拍'); // 載入預設分類
+  
+  // 判定並顯示管理員按鈕
+  const adminEmails = ['daidai@admin.com', 'admin@admin.com'];
+  const adminBtn = document.getElementById('admin-btn');
+  if (adminBtn) {
+    adminBtn.style.display = adminEmails.includes(user.email) ? 'inline-block' : 'none';
+  }
+
+  window.loadCategory('羽球拍'); 
 }
 
 // 3. 資料獲取與渲染
@@ -344,18 +352,6 @@ window.resumeCheckout = function(orderId, totalAmount) {
 };
 
 // ================= 8. 管理員後台邏輯 =================
-
-// 覆寫原本的 initAppView，加入管理員判定
-const originalInitAppView = initAppView;
-window.initAppView = function(user) {
-  originalInitAppView(user); // 執行原本的登入初始化
-  
-  // 判定是否為管理員
-  const adminEmails = ['daidai@admin.com', 'admin@admin.com'];
-  if (adminEmails.includes(user.email)) {
-    document.getElementById('admin-btn').style.display = 'inline-block';
-  }
-};
 
 window.loadAdminPanel = async function() {
   // 隱藏其他視圖
