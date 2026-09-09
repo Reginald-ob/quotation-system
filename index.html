@@ -28,19 +28,19 @@
       </div>
     </div>
 
-    <div class="layout-body">
-      <div class="sidebar" id="category-sidebar">
-        <!-- 點擊觸發 API 請求不同 Sheet -->
-        <button class="category-btn active" onclick="loadCategory('羽球拍')">羽球拍</button>
-        <button class="category-btn" onclick="loadCategory('羽球鞋')">羽球鞋</button>
-      </div>
-      <div class="product-grid" id="product-grid">
-        <!-- 產品卡片由 JS 動態生成 -->
-      </div>
+  <div class="layout-body">
+    <div class="sidebar" id="category-sidebar">
+      <!-- 點擊觸發 API 請求不同 Sheet -->
+      <button class="category-btn active" onclick="loadCategory('羽球拍')">羽球拍</button>
+      <button class="category-btn" onclick="loadCategory('羽球鞋')">羽球鞋</button>
     </div>
+    <div class="product-grid" id="product-grid">
+        <!-- 產品卡片由 JS 動態生成 -->
+    </div>
+  </div>
 
-    <div class="cart-bar">
-      <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
+  <div class="cart-bar">
+    <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
       <button class="btn-orange" id="checkout-btn">前往結帳</button>
     </div>
   </div>
@@ -48,18 +48,18 @@
   <!-- 結帳與匯款視圖 (預設隱藏) -->
   <div id="checkout-view" style="display: none; padding: 2rem; max-width: 600px; margin: 50px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
     <h2>訂單已成立</h2>
-    <div id="checkout-summary" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
-      <!-- 動態插入訂單摘要 -->
-    </div>
+  <div id="checkout-summary" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+  <!-- 動態插入訂單摘要 -->
+  </div>
     
-    <!-- 門檻 > $500：顯示匯款表單 -->
-    <div id="remittance-form" style="display: none; display: flex; flex-direction: column; gap: 10px;">
-      <h3>填寫匯款資料</h3>
-      <p style="color: #666; font-size: 0.9em;">收款銀行：000 (測試銀行) / 帳號：1234567890</p>
-      <input type="text" id="bank-last-5" placeholder="匯款帳號後 5 碼 (必填)" maxlength="5" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-      <input type="text" id="tax-id" placeholder="統一編號 (非必填)" maxlength="8" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-      <button class="btn-orange" id="submit-remittance-btn">確認送出匯款資訊</button>
-    </div>
+  <!-- 門檻 > $500：顯示匯款表單 -->
+  <div id="remittance-form" style="display: none; display: flex; flex-direction: column; gap: 10px;">
+    <h3>填寫匯款資料</h3>
+    <p style="color: #666; font-size: 0.9em;">收款銀行：000 (測試銀行) / 帳號：1234567890</p>
+    <input type="text" id="bank-last-5" placeholder="匯款帳號後 5 碼 (必填)" maxlength="5" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+    <input type="text" id="tax-id" placeholder="統一編號 (非必填)" maxlength="8" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+    <button class="btn-orange" id="submit-remittance-btn">確認送出匯款資訊</button>
+  </div>
 
     <!-- 門檻 <= $500：顯示黃字警告 -->
     <div id="low-amount-warning" style="display: none; color: #856404; background: #fff3cd; padding: 15px; border-radius: 4px; font-weight: bold;">
@@ -67,25 +67,11 @@
     </div>
 
     <button onclick="location.reload()" style="margin-top: 20px; padding: 10px; cursor: pointer; width: 100%;">返回購物 / 查看我的訂單</button>
-  </div>
+    </div>
 
     <!-- 我的訂單視圖 (預設隱藏) -->
     <div id="orders-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-    
-    <!-- 管理員後台視圖 (預設隱藏) -->
-    <div id="admin-view" style="display: none; padding: 2rem; max-width: 900px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-      <h2 style="color: #dc3545;">管理員後台</h2>
-      
-      <div style="margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-        <button class="category-btn active" style="width: auto;">訂單管理 (運費與核帳)</button>
-        <!-- 帳號管理預留位置 -->
-      </div>
 
-      <div id="admin-orders-container">
-        <!-- JS 動態生成後台訂單列表 -->
-      </div>
-    </div>
-    
     <h2>我的訂單</h2>
     
     <!-- 狀態標籤分頁 -->
@@ -98,6 +84,20 @@
     <!-- 訂單列表容器 -->
     <div id="orders-list-container">
     <!-- JS 動態生成訂單卡片 -->
+    </div>
+  </div>
+
+  <!-- 管理員後台視圖 (預設隱藏) -->
+  <div id="admin-view" style="display: none; padding: 2rem; max-width: 900px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+    <h2 style="color: #dc3545;">管理員後台</h2>
+
+    <div style="margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+      <button class="category-btn active" style="width: auto;">訂單管理 (運費與核帳)</button>
+      <!-- 帳號管理預留位置 -->
+    </div>
+
+    <div id="admin-orders-container">
+      <!-- JS 動態生成後台訂單列表 -->
     </div>
   </div>
 

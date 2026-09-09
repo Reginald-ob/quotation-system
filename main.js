@@ -354,103 +354,88 @@ window.resumeCheckout = function(orderId, totalAmount) {
 // ================= 8. 管理員後台邏輯 =================
 
 window.loadAdminPanel = async function() {
-  // 隱藏其他視圖
-  console.log("觸發進入後台");
-  document.getElementById('app-view').style.display = 'none';
-  document.getElementById('checkout-view').style.display = 'none';
-  document.getElementById('orders-view').style.display = 'none';
-  document.getElementById('admin-view').style.display = 'block';
-
-  const container = document.getElementById('admin-orders-container');
-  container.innerHTML = '<p>載入所有訂單中...</p>';
-
-  // 獲取所有需要處理的訂單 (未付款、匯款待查)
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .in('status', ['未付款', '匯款待查'])
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error(error);
-    return container.innerHTML = '<p style="color:red;">載入失敗</p>';
-  }
-
-  if (data.length === 0) {
-    return container.innerHTML = '<p>目前沒有需要處理的訂單。</p>';
-  }
-
-  container.innerHTML = '';
-  data.forEach(order => {
-    const card = document.createElement('div');
-    card.style = 'border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff;';
+  try {
+    console.log("觸發進入後台"); // 測試事件是否綁定成功
     
-    let actionHtml = '';
+    const appView = document.getElementById('app-view');
+    const checkoutView = document.getElementById('checkout-view');
+    const ordersView = document.getElementById('orders-view');
+    const adminView = document.getElementById('admin-view');
 
-    // 情境 A：未付款 (可修改總金額與備註)
-    if (order.status === '未付款') {
-      actionHtml = `
-        <div style="background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 4px;">
-          <h4 style="margin-top: 0;">修改運費/金額</h4>
-          <input type="number" id="admin-price-${order.order_id}" value="${order.total_amount}" style="padding: 5px; width: 100px;"> 
-          <input type="text" id="admin-note-${order.order_id}" value="${order.admin_note || ''}" placeholder="新增備註 (選填)" style="padding: 5px; width: 250px;">
-          <button class="btn-orange" onclick="adminUpdateOrder('${order.order_id}')">更新訂單並解鎖結帳</button>
-        </div>
-      `;
-    } 
-    // 情境 B：匯款待查 (管理員核准)
-    else if (order.status === '匯款待查') {
-      actionHtml = `
-        <div style="background: #e2e3e5; padding: 10px; margin-top: 10px; border-radius: 4px;">
-          <h4 style="margin-top: 0; color: #383d41;">匯款審核</h4>
-          <p>客戶統編: ${order.tax_id || '無'} | 帳戶後五碼: <strong style="color:red; font-size: 1.2em;">${order.account_last_5}</strong></p>
-          <button class="btn-orange" style="background: #28a745;" onclick="adminApprovePayment('${order.order_id}')">確認已收款 (轉為進行中)</button>
-        </div>
-      `;
+    // 驗證節點是否存在
+    if (!adminView) throw new Error("找不到 id 為 'admin-view' 的 HTML 節點");
+
+    // 視圖切換
+    if (appView) appView.style.display = 'none';
+    if (checkoutView) checkoutView.style.display = 'none';
+    if (ordersView) ordersView.style.display = 'none';
+    adminView.style.display = 'block';
+
+    const container = document.getElementById('admin-orders-container');
+    if (!container) throw new Error("找不到 id 為 'admin-orders-container' 的節點");
+    
+    container.innerHTML = '<p>載入所有訂單中...</p>';
+
+    // 獲取資料
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .in('status', ['未付款', '匯款待查'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Supabase 查詢錯誤:", error);
+      container.innerHTML = `<p style="color:red;">資料庫載入失敗: ${error.message}</p>`;
+      return;
     }
 
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
-        <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
-      </div>
-      <p style="color: #666; font-size: 0.9em;">用戶 ID: ${order.user_id}</p>
-      <p>目前總額: <strong>$${order.total_amount}</strong></p>
-      ${actionHtml}
-    `;
-    container.appendChild(card);
-  });
-};
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p>目前沒有需要處理的訂單。</p>';
+      return;
+    }
 
-// 管理員更新金額與備註
-window.adminUpdateOrder = async function(orderId) {
-  const newPrice = document.getElementById(`admin-price-${orderId}`).value;
-  const newNote = document.getElementById(`admin-note-${orderId}`).value;
+    // 渲染卡片 (此處保留原有的 forEach 渲染邏輯)
+    container.innerHTML = '';
+    data.forEach(order => {
+      const card = document.createElement('div');
+      card.style = 'border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff;';
+      
+      let actionHtml = '';
+      if (order.status === '未付款') {
+        actionHtml = `
+          <div style="background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 4px;">
+            <h4 style="margin-top: 0;">修改運費/金額</h4>
+            <input type="number" id="admin-price-${order.order_id}" value="${order.total_amount}" style="padding: 5px; width: 100px;"> 
+            <input type="text" id="admin-note-${order.order_id}" value="${order.admin_note || ''}" placeholder="新增備註 (選填)" style="padding: 5px; width: 250px;">
+            <button class="btn-orange" onclick="adminUpdateOrder('${order.order_id}')">更新訂單並解鎖結帳</button>
+          </div>
+        `;
+      } else if (order.status === '匯款待查') {
+        actionHtml = `
+          <div style="background: #e2e3e5; padding: 10px; margin-top: 10px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #383d41;">匯款審核</h4>
+            <p>客戶統編: ${order.tax_id || '無'} | 帳戶後五碼: <strong style="color:red; font-size: 1.2em;">${order.account_last_5}</strong></p>
+            <button class="btn-orange" style="background: #28a745;" onclick="adminApprovePayment('${order.order_id}')">確認已收款 (轉為進行中)</button>
+          </div>
+        `;
+      }
 
-  const { error } = await supabase
-    .from('orders')
-    .update({ 
-      total_amount: newPrice, 
-      admin_note: newNote,
-      is_payable: true // 強制解鎖用戶端的結帳按鈕
-    })
-    .eq('order_id', orderId);
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
+          <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
+        </div>
+        <p style="color: #666; font-size: 0.9em;">用戶 ID: ${order.user_id}</p>
+        <p>目前總額: <strong>$${order.total_amount}</strong></p>
+        ${actionHtml}
+      `;
+      container.appendChild(card);
+    });
 
-  if (error) return alert('更新失敗: ' + error.message);
-  alert('訂單已更新！用戶現在可以進行結帳。');
-  loadAdminPanel(); // 重新載入列表
-};
-
-// 管理員核准匯款
-window.adminApprovePayment = async function(orderId) {
-  const { error } = await supabase
-    .from('orders')
-    .update({ status: '進行中' })
-    .eq('order_id', orderId);
-
-  if (error) return alert('核准失敗: ' + error.message);
-  alert('已確認收款，訂單狀態轉為「進行中」。');
-  loadAdminPanel(); // 重新載入列表
+  } catch (err) {
+    console.error("後台載入發生例外錯誤:", err);
+    alert(`系統錯誤: ${err.message}`);
+  }
 };
 
 //登出
