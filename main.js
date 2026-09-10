@@ -186,21 +186,40 @@ async function processCheckout() {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const randomLetters = letters[Math.floor(Math.random() * 26)] + letters[Math.floor(Math.random() * 26)];
   const randomNumbers = Math.floor(10000 + Math.random() * 90000);
-  const orderId = `${randomLetters}${randomNumbers}`; // 2英+5數
+  const orderId = `${randomLetters}${randomNumbers}`;
 
   // 2. 雙軌判斷門檻 ($500)
   const isPayable = finalTotal > 500;
   const adminNote = isPayable ? null : '該訂單未達預付貨款門檻，入庫後連同運費合併結帳';
 
-  // 3. 序列化商品明細
+  // 3. 序列化商品明細與生成 UI 字串
   const orderItems = [];
+  let itemsHtml = ''; // 供結帳頁面顯示用的 HTML
+
   for (const pid in cartState) {
     if (cartState[pid].isChecked) {
+      let specHtml = '';
+      const specsArray = [];
+      
+      for (const specKey in cartState[pid].specs) {
+        const item = cartState[pid].specs[specKey];
+        specsArray.push(item);
+        specHtml += `<div style="margin-left: 10px; color: #555; font-size: 0.9em;">- ${specKey} (x${item.qty}) : $${item.qty * item.price}</div>`;
+      }
+      
+      // 確保傳給資料庫的格式與之前一致
       orderItems.push({
         product_id: pid,
         name: cartState[pid].name,
-        specs: Object.values(cartState[pid].specs)
+        specs: specsArray
       });
+
+      itemsHtml += `
+        <div style="margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 10px;">
+          <strong style="font-size: 0.95em;">${cartState[pid].name}</strong>
+          ${specHtml}
+        </div>
+      `;
     }
   }
 
@@ -227,26 +246,35 @@ async function processCheckout() {
     return alert('建立訂單失敗，請稍後再試。');
   }
 
-  // 5. 建單成功：清空本地購物車
+  // 5. 建單成功：清空本地購物車並關閉可能開著的彈窗
   cartState = {};
   calculateCartTotal();
-  // 可選：重新渲染畫面上的數量歸零，或依賴跳轉後重新載入
+  if (typeof closeCartModal === 'function') closeCartModal();
 
-  // 6. 視圖切換與 UI 渲染
+  // 6. 視圖切換與 UI 渲染 (注入訂單明細)
   document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'block';
   
   document.getElementById('checkout-summary').innerHTML = `
-    <p>訂單編號: <strong>${orderId}</strong></p>
-    <p>商品總計: $${baseAmount}</p>
-    <p>營業稅 (5%): $${taxAmount}</p>
-    <h3 style="color: var(--primary-orange);">應付總額: $${finalTotal}</h3>
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef;">
+      <p style="margin-top: 0; font-size: 1.1em;">訂單編號: <strong>${orderId}</strong></p>
+      
+      <h4 style="margin-bottom: 10px; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #333;">訂單明細</h4>
+      <div style="max-height: 250px; overflow-y: auto; margin-bottom: 10px; padding-right: 5px;">
+        ${itemsHtml}
+      </div>
+
+      <div style="margin-top: 15px; text-align: right; border-top: 2px solid #ccc; padding-top: 10px;">
+        <p style="margin: 5px 0;">商品總計: $${baseAmount}</p>
+        <p style="margin: 5px 0;">營業稅 (5%): $${taxAmount}</p>
+        <h3 style="color: var(--primary-orange); margin: 10px 0 0 0;">應付總額: $${finalTotal}</h3>
+      </div>
+    </div>
   `;
 
   if (isPayable) {
     document.getElementById('remittance-form').style.display = 'flex';
     document.getElementById('low-amount-warning').style.display = 'none';
-    // 將 orderId 暫存於按鈕，供送出匯款表單時使用
     document.getElementById('submit-remittance-btn').dataset.orderId = orderId;
   } else {
     document.getElementById('remittance-form').style.display = 'none';
@@ -654,5 +682,78 @@ window.switchCategory = function(btnElement, categorySheet) {
     window.loadCategory(categorySheet);
   } else {
     console.error("找不到 window.loadCategory 函式");
+  }
+};
+
+// ================= 10. 採購車明細彈窗邏輯 =================
+window.openCartModal = function() {
+  const container = document.getElementById('cart-items-container');
+  container.innerHTML = '';
+  let totalAmount = 0;
+  let hasItems = false;
+
+  for (const pid in cartState) {
+    if (cartState[pid].isChecked) {
+      for (const specKey in cartState[pid].specs) {
+        const item = cartState[pid].specs[specKey];
+        if (item.qty > 0) {
+          hasItems = true;
+          totalAmount += item.qty * item.price;
+          
+          const itemDiv = document.createElement('div');
+          itemDiv.style = "display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 10px 0;";
+          itemDiv.innerHTML = `
+            <div style="flex: 1;">
+              <div style="font-weight: bold; font-size: 0.95em;">${cartState[pid].name}</div>
+              <div style="color: #666; font-size: 0.85em;">規格: ${specKey}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <div style="color: #ee4d2d; font-weight: bold;">$${item.price}</div>
+              <div style="display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
+                <button onclick="updateCartItemQty('${pid}', '${specKey}', -1)" style="padding: 2px 10px; background: #f8f9fa; border: none; border-right: 1px solid #ccc; cursor: pointer;">-</button>
+                <span style="width: 35px; text-align: center; font-size: 0.9em;">${item.qty}</span>
+                <button onclick="updateCartItemQty('${pid}', '${specKey}', 1)" style="padding: 2px 10px; background: #f8f9fa; border: none; border-left: 1px solid #ccc; cursor: pointer;">+</button>
+              </div>
+            </div>
+          `;
+          container.appendChild(itemDiv);
+        }
+      }
+    }
+  }
+
+  if (!hasItems) {
+    container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px 0;">採購車目前是空的</p>';
+  }
+  
+  document.getElementById('cart-modal-total').innerText = totalAmount;
+  document.getElementById('cart-modal').style.display = 'flex';
+};
+
+window.closeCartModal = function() {
+  document.getElementById('cart-modal').style.display = 'none';
+};
+
+// 點擊遮罩關閉採購車彈窗
+document.getElementById('cart-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCartModal();
+});
+
+// 在採購車內直接修改數量
+window.updateCartItemQty = function(pid, specKey, change) {
+  if (cartState[pid] && cartState[pid].specs[specKey]) {
+    cartState[pid].specs[specKey].qty += change;
+    
+    // 若數量歸零則刪除該規格
+    if (cartState[pid].specs[specKey].qty <= 0) {
+      delete cartState[pid].specs[specKey];
+    }
+    // 若該產品已無任何規格則刪除該產品
+    if (Object.keys(cartState[pid].specs).length === 0) {
+      delete cartState[pid];
+    }
+    
+    calculateCartTotal(); // 重新計算底部總金額
+    openCartModal();      // 重新渲染彈窗畫面
   }
 };

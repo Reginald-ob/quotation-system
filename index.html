@@ -56,6 +56,8 @@
 
   <div class="cart-bar">
     <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-orange" onclick="openCartModal()" style="background: #17a2b8;">查看採購車</button>
       <button class="btn-orange" id="checkout-btn">前往結帳</button>
     </div>
   </div>
@@ -145,6 +147,20 @@
 
           <button class="btn-orange" onclick="addToCartFromModal()" style="width: 100%; padding: 12px; font-size: 1.1em; margin-top: 20px; border-radius: 4px; background: #ee4d2d;">加入採購車</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 採購車明細彈窗 -->
+  <div id="cart-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <span class="close-btn" onclick="closeCartModal()">&times;</span>
+      <h3 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">採購車明細</h3>
+      <div id="cart-items-container" style="max-height: 50vh; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
+        <!-- JS 動態生成購物車內容 -->
+      </div>
+      <div style="text-align: right; font-weight: bold; font-size: 1.2em; border-top: 2px solid #eee; padding-top: 15px;">
+        總計(未稅): $<span id="cart-modal-total">0</span>
       </div>
     </div>
   </div>
