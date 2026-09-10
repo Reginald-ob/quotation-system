@@ -9,6 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // 全域狀態管理
 let cartState = {}; 
 let currentProducts = {}; 
+let allProducts = {};
 
 // 2. 登入與視圖控制
 document.addEventListener('DOMContentLoaded', checkSession);
