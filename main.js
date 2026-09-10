@@ -637,3 +637,22 @@ window.addToCartFromModal = function() {
   // 給予明確的反饋
   alert(`已將 ${currentModalQty} 件 ${currentModalProduct.name} (${specKey}) 加入採購車`);
 };
+
+// 側邊欄分類切換與樣式更新 (修復左側選單點擊無反應)
+window.switchCategory = function(btnElement, categorySheet) {
+  // 1. 移除所有側邊欄按鈕的 active 狀態
+  const btns = document.querySelectorAll('.sidebar-btn');
+  btns.forEach(btn => btn.classList.remove('active'));
+  
+  // 2. 當前點擊的按鈕加上 active 狀態 (呈現橘色邊框)
+  if (btnElement) {
+    btnElement.classList.add('active');
+  }
+  
+  // 3. 執行資料載入
+  if (typeof window.loadCategory === 'function') {
+    window.loadCategory(categorySheet);
+  } else {
+    console.error("找不到 window.loadCategory 函式");
+  }
+};
