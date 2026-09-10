@@ -94,6 +94,14 @@ window.loadCategory = async function(categorySheet) {
   }
 };
 
+window.switchCategory = function(button, categorySheet) {
+  document.querySelectorAll('.sidebar-btn').forEach(categoryButton => {
+    categoryButton.classList.remove('active');
+  });
+  button.classList.add('active');
+  window.loadCategory(categorySheet);
+};
+
 function renderProductGrid(products) {
   const grid = document.getElementById('product-grid');
   grid.innerHTML = '';
@@ -324,6 +332,7 @@ let allMyOrders = []; // 暫存歷史訂單
 window.showAppView = function() {
   document.getElementById('checkout-view').style.display = 'none';
   document.getElementById('orders-view').style.display = 'none';
+  document.getElementById('admin-view').style.display = 'none';
   document.getElementById('app-view').style.display = 'flex';
 };
 
