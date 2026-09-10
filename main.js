@@ -52,7 +52,7 @@ window.loadCategory = async function(categorySheet) {
   grid.innerHTML = '<p style="padding: 20px;">載入商品中，請稍候...</p>';
 
   try {
-    const response = await fetch(`/api/getProducts?sheet=${categorySheet}`);
+    const response = await fetch(`https://quotation-system.vercel.app/api/getProducts?sheet=${categorySheet}`);
     const data = await response.json();
 
     if (data.error) {
@@ -603,27 +603,29 @@ document.getElementById('product-modal').addEventListener('click', function(e) {
 // 從彈窗加入購物車
 window.addToCartFromModal = function() {
   const prodId = currentModalProduct.id;
-  const specKey = currentSelectedVariant.specName;
+  const variant = currentSelectedVariant;
+  const specKey = variant.specName;
   
-  // 確保購物車中已有該產品物件
-  if (!cart[prodId]) {
-    cart[prodId] = { name: currentModalProduct.name, specs: {} };
+  // 1. 確保購物車中已有該產品物件 (對接正確的 cartState 變數)
+  if (!cartState[prodId]) {
+    cartState[prodId] = { name: currentModalProduct.name, isChecked: true, specs: {} };
   }
   
-  // 確保產品物件中已有該規格物件
-  if (!cart[prodId].specs[specKey]) {
-    cart[prodId].specs[specKey] = {
-      qty: 0,
-      price: currentSelectedVariant.price
+  // 2. 確保產品物件中已有該規格物件
+  if (!cartState[prodId].specs[specKey]) {
+    cartState[prodId].specs[specKey] = {
+      specName: specKey,
+      price: variant.price,
+      qty: 0
     };
   }
   
-  // 數量 +1
-  cart[prodId].specs[specKey].qty += 1;
+  // 3. 數量 +1
+  cartState[prodId].specs[specKey].qty += 1;
   
-  updateCartUI(); // 呼叫原本的更新購物車右側介面函式
+  // 4. 更新底部購物車總計數字 (取代不存在的 updateCartUI)
+  calculateCartTotal(); 
   closeModal();
   
-  // 顯示簡短提示 (可選)
   alert(`已將 ${currentModalProduct.name} (${specKey}) 加入採購車`);
 };

@@ -1,4 +1,13 @@
 export default async function handler(req, res) {
+  // 1. 允許跨域請求 (解決 Failed to fetch)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+  // 處理 OPTIONS 預檢請求
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   const { sheet = '日用品' } = req.query;
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const apiKey = process.env.GOOGLE_API_KEY;
