@@ -47,36 +47,50 @@ function initAppView(user) {
   window.loadCategory('日用品'); 
 }
 
-// 3. 資料獲取與渲染
 window.loadCategory = async function(categorySheet) {
   const grid = document.getElementById('product-grid');
-  grid.innerHTML = '<h3>資料載入中...</h3>';
-  
+  grid.innerHTML = '<p style="padding: 20px;">載入商品中，請稍候...</p>';
+
   try {
     const response = await fetch(`https://quotation-system-xi-blue.vercel.app/api/getProducts?sheet=${categorySheet}`);
-    if (!response.ok) throw new Error('API 請求失敗');
-    
-    currentProducts = await response.json();
-    renderProductGrid(currentProducts);
-  } catch (error) {
-    console.error(error);
-    grid.innerHTML = '<h3 style="color:red;">資料載入失敗。</h3>';
-  }
-};
+    const data = await response.json();
 
-// 側邊欄分類切換與樣式更新
-window.switchCategory = function(btnElement, categorySheet) {
-  // 1. 移除所有側邊欄按鈕的 active 狀態
-  const btns = document.querySelectorAll('.sidebar-btn');
-  btns.forEach(btn => btn.classList.remove('active'));
-  
-  // 2. 當前點擊的按鈕加上 active 狀態
-  if (btnElement) {
-    btnElement.classList.add('active');
+    if (data.error) {
+      grid.innerHTML = `<p style="color:red; padding:20px;">發生錯誤: ${data.error}</p>`;
+      return;
+    }
+    
+    if (Object.keys(data).length === 0) {
+      grid.innerHTML = '<p style="padding: 20px;">此分類目前無商品或工作表為空。</p>';
+      return;
+    }
+
+    allProducts = data;
+    grid.innerHTML = ''; // 清空 loading 提示
+
+    // --- 這裡就是修改一的蝦皮風格網格渲染 ---
+    Object.values(allProducts).forEach(product => {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      
+      // 點擊整張卡片喚出彈窗 (傳入 product.id)
+      card.onclick = () => openModal(product.id);
+      
+      // 僅顯示圖片、品名、最低起步價
+      card.innerHTML = `
+        <img src="${product.variants[0].image}" alt="${product.name}" loading="lazy">
+        <div class="info">
+          <p class="title">${product.name}</p>
+          <p class="price">$${product.minPrice}</p>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("API 請求失敗", err);
+    grid.innerHTML = '<p style="color:red; padding: 20px;">無法連線至伺服器，請稍後再試。</p>';
   }
-  
-  // 3. 執行資料載入
-  loadCategory(categorySheet);
 };
 
 function renderProductGrid(products) {
@@ -540,4 +554,76 @@ window.adminApprovePayment = async function(orderId) {
 window.logout = async function() {
   await supabase.auth.signOut();
   location.reload();
+};
+
+// ================= 9. 商品彈窗與選購邏輯 =================
+let currentModalProduct = null;
+let currentSelectedVariant = null;
+
+// 開啟彈窗
+window.openModal = function(productId) {
+  currentModalProduct = allProducts[productId];
+  currentSelectedVariant = currentModalProduct.variants[0]; // 預設選取第一個規格
+  
+  document.getElementById('modal-name').innerText = currentModalProduct.name;
+  document.getElementById('modal-desc').innerText = currentModalProduct.description || '暫無詳細介紹。';
+  document.getElementById('product-modal').style.display = 'flex';
+  
+  renderModalSpecs();
+};
+
+// 渲染彈窗內的動態數據(圖、價、規格按鈕)
+window.renderModalSpecs = function() {
+  document.getElementById('modal-img').src = currentSelectedVariant.image;
+  document.getElementById('modal-price').innerText = `$${currentSelectedVariant.price}`;
+  
+  const specsContainer = document.getElementById('modal-specs');
+  specsContainer.innerHTML = currentModalProduct.variants.map(v => `
+    <button class="spec-btn ${currentSelectedVariant.skuId === v.skuId ? 'selected' : ''}" 
+            onclick="selectSpec('${v.skuId}')">${v.specName}</button>
+  `).join('');
+};
+
+// 切換規格
+window.selectSpec = function(skuId) {
+  currentSelectedVariant = currentModalProduct.variants.find(v => v.skuId === skuId);
+  renderModalSpecs();
+};
+
+// 關閉彈窗
+window.closeModal = function() {
+  document.getElementById('product-modal').style.display = 'none';
+};
+
+// 點擊遮罩也可關閉彈窗
+document.getElementById('product-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// 從彈窗加入購物車
+window.addToCartFromModal = function() {
+  const prodId = currentModalProduct.id;
+  const specKey = currentSelectedVariant.specName;
+  
+  // 確保購物車中已有該產品物件
+  if (!cart[prodId]) {
+    cart[prodId] = { name: currentModalProduct.name, specs: {} };
+  }
+  
+  // 確保產品物件中已有該規格物件
+  if (!cart[prodId].specs[specKey]) {
+    cart[prodId].specs[specKey] = {
+      qty: 0,
+      price: currentSelectedVariant.price
+    };
+  }
+  
+  // 數量 +1
+  cart[prodId].specs[specKey].qty += 1;
+  
+  updateCartUI(); // 呼叫原本的更新購物車右側介面函式
+  closeModal();
+  
+  // 顯示簡短提示 (可選)
+  alert(`已將 ${currentModalProduct.name} (${specKey}) 加入採購車`);
 };
