@@ -31,27 +31,23 @@ body {
   justify-content: space-between; align-items: center;
 }
 
-.layout-body { display: flex; flex: 1; padding-bottom: 80px; }
+.layout-body { display: flex; flex: 1; padding-bottom: 80px; align-items: flex-start; }
 
-.sidebar { width: 200px; padding: 1rem; background: var(--bg-white); margin-right: 1rem; }
+.sidebar { width: 200px; padding: 1rem; background: var(--bg-white); margin-right: 1rem; flex-shrink: 0; }
 .category-btn {
   width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #ddd;
   background: transparent; cursor: pointer; text-align: left;
 }
 .category-btn.active { border-color: var(--primary-orange); color: var(--primary-orange); font-weight: bold; }
 
-/* 蝦皮風格微型網格 (修正過長問題) */
+/* 唯一的蝦皮風格微型網格設定 (已清除重複衝突) */
 .product-grid {
-  flex: 1; /* 佔據剩餘的水平空間 */
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); /* 進一步縮小單張卡片的基準寬度 */
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px;
-  padding: 1rem 1rem 1rem 0;
-  
-  /* 關鍵修正：限制最大高度並啟用獨立滾動條 */
-  max-height: calc(100vh - 160px); 
-  overflow-y: auto;
-  align-content: start; /* 讓卡片靠上對齊，避免少數商品時高度被異常拉長 */
+  padding: 0 1rem 1rem 0;
+  align-content: start;
 }
 
 /* 確保卡片內部排版穩定 */
@@ -69,7 +65,7 @@ body {
 .product-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 .product-card .info { padding: 8px; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
 .product-card .title { font-size: 0.85em; margin: 0 0 5px 0; color: #333; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.product-card .price { color: #ee4d2d; font-size: 1.1em; margin: 0; font-weight: bold;}
+.product-card .price { color: #ee4d2d; font-size: 1.1em; margin: 0; font-weight: bold; }
 
 /* 彈窗 (Modal) 樣式 */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
