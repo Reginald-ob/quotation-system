@@ -71,22 +71,6 @@ body {
 .product-card .title { font-size: 0.85em; margin: 0 0 5px 0; color: #333; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .product-card .price { color: #ee4d2d; font-size: 1.1em; margin: 0; font-weight: bold;}
 
-.product-card {
-  background: var(--bg-white);
-  border: 1px solid #eaeaea;
-  border-radius: 4px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-}
-.product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.product-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
-.product-card .info { padding: 8px; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
-.product-card .title { font-size: 0.85em; margin: 0 0 5px 0; color: #333; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.product-card .price { color: #ee4d2d; font-size: 1.1em; margin: 0; }
-
 /* 彈窗 (Modal) 樣式 */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-content { background: #fff; width: 90%; max-width: 650px; border-radius: 8px; position: relative; max-height: 90vh; overflow-y: auto; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
