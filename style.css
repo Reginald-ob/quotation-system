@@ -110,3 +110,20 @@ body {
 .qty-btn:hover {
   background: #ddd;
 }
+
+/* ================= 底部購物車列樣式 ================= */
+.cart-bar {
+  position: fixed; 
+  bottom: 0; 
+  left: 0;
+  width: 100%; 
+  background: var(--bg-white);
+  border-top: 3px solid var(--primary-orange); 
+  padding: 1rem 2rem;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1); 
+  box-sizing: border-box;
+  z-index: 999;
+}
