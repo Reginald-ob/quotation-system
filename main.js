@@ -588,13 +588,13 @@ window.logout = async function() {
 // ================= 9. 商品彈窗與選購邏輯 =================
 let currentModalProduct = null;
 let currentSelectedVariant = null;
-let currentModalQty = 1; // 新增：用來記錄彈窗內的當前選擇數量
+let currentModalQty = 0; // 預設值改為 0
 
 // 開啟彈窗
 window.openModal = function(productId) {
   currentModalProduct = allProducts[productId];
   currentSelectedVariant = currentModalProduct.variants[0]; // 預設選取第一個規格
-  currentModalQty = 1; // 每次開啟彈窗時，數量重置為 1
+  currentModalQty = 0; // 每次開啟彈窗時，數量預設為 0
   
   document.getElementById('modal-name').innerText = currentModalProduct.name;
   document.getElementById('modal-desc').innerText = currentModalProduct.description || '暫無詳細介紹。';
@@ -622,11 +622,20 @@ window.selectSpec = function(skuId) {
   renderModalSpecs();
 };
 
-// 新增：處理彈窗內的數量增減
+// 處理彈窗內的數量增減按鈕
 window.changeModalQty = function(change) {
   currentModalQty += change;
-  if (currentModalQty < 1) currentModalQty = 1; // 確保最低數量為 1
+  if (currentModalQty < 0) currentModalQty = 0; // 最低為 0
   document.getElementById('modal-qty-input').value = currentModalQty;
+};
+
+// 新增：處理手動輸入數量的同步與防呆
+window.onModalQtyInputChange = function(input) {
+  let val = parseInt(input.value, 10);
+  if (isNaN(val) || val < 0) {
+    val = 0;
+  }
+  currentModalQty = val;
 };
 
 // 關閉彈窗
@@ -638,8 +647,16 @@ document.getElementById('product-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-// 從彈窗加入購物車 (已結合自訂數量)
+// 從彈窗加入購物車
 window.addToCartFromModal = function() {
+  // 確保取得當前輸入框內的最新數值
+  const qtyInputVal = parseInt(document.getElementById('modal-qty-input').value, 10);
+  currentModalQty = isNaN(qtyInputVal) ? 0 : qtyInputVal;
+
+  if (currentModalQty <= 0) {
+    return alert('請輸入大於 0 的採購數量');
+  }
+
   const prodId = currentModalProduct.id;
   const variant = currentSelectedVariant;
   const specKey = variant.specName;
@@ -656,33 +673,12 @@ window.addToCartFromModal = function() {
     };
   }
   
-  // 將原本的 += 1 改為 += currentModalQty (玩家選擇的數量)
   cartState[prodId].specs[specKey].qty += currentModalQty;
   
   calculateCartTotal(); 
   closeModal();
   
-  // 給予明確的反饋
   alert(`已將 ${currentModalQty} 件 ${currentModalProduct.name} (${specKey}) 加入採購車`);
-};
-
-// 側邊欄分類切換與樣式更新 (修復左側選單點擊無反應)
-window.switchCategory = function(btnElement, categorySheet) {
-  // 1. 移除所有側邊欄按鈕的 active 狀態
-  const btns = document.querySelectorAll('.sidebar-btn');
-  btns.forEach(btn => btn.classList.remove('active'));
-  
-  // 2. 當前點擊的按鈕加上 active 狀態 (呈現橘色邊框)
-  if (btnElement) {
-    btnElement.classList.add('active');
-  }
-  
-  // 3. 執行資料載入
-  if (typeof window.loadCategory === 'function') {
-    window.loadCategory(categorySheet);
-  } else {
-    console.error("找不到 window.loadCategory 函式");
-  }
 };
 
 // ================= 10. 採購車明細彈窗邏輯 =================

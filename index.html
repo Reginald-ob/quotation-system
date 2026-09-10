@@ -140,11 +140,10 @@
             <span style="color: #666; font-size: 0.9em;">採購數量</span>
             <div style="display: flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
               <button onclick="changeModalQty(-1)" style="padding: 5px 15px; background: #f8f9fa; border: none; cursor: pointer; font-size: 1.2em; border-right: 1px solid #ccc;">-</button>
-              <input type="number" id="modal-qty-input" value="1" readonly style="width: 50px; text-align: center; border: none; outline: none; font-size: 1.1em; background: #fff;">
+              <input type="number" id="modal-qty-input" value="0" min="0" oninput="onModalQtyInputChange(this)" style="width: 50px; text-align: center; border: none; outline: none; font-size: 1.1em; background: #fff;">
               <button onclick="changeModalQty(1)" style="padding: 5px 15px; background: #f8f9fa; border: none; cursor: pointer; font-size: 1.2em; border-left: 1px solid #ccc;">+</button>
             </div>
           </div>
-
           <button class="btn-orange" onclick="addToCartFromModal()" style="width: 100%; padding: 12px; font-size: 1.1em; margin-top: 20px; border-radius: 4px; background: #ee4d2d;">加入採購車</button>
         </div>
       </div>
