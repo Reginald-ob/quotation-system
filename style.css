@@ -77,3 +77,36 @@ body {
 .modal-info { flex: 1; min-width: 250px; display: flex; flex-direction: column; }
 .spec-btn { border: 1px solid #ccc; padding: 6px 12px; margin: 0 8px 8px 0; background: #fff; cursor: pointer; border-radius: 4px; font-size: 0.9em; transition: 0.2s; }
 .spec-btn.selected { border-color: #ee4d2d; color: #ee4d2d; background: #fff0ed; font-weight: bold; }
+
+/* ================= 按鈕設計 ================= */
+.btn-orange {
+  background: var(--primary-orange); 
+  color: white; 
+  border: none;
+  padding: 8px 16px; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+
+.btn-orange:hover {
+  opacity: 0.9;
+}
+
+.qty-btn { 
+  width: 28px; 
+  height: 28px; 
+  cursor: pointer; 
+  background: #eee; 
+  border: none; 
+  border-radius: 4px; 
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+}
+
+.qty-btn:hover {
+  background: #ddd;
+}
