@@ -52,7 +52,7 @@ window.loadCategory = async function(categorySheet) {
   grid.innerHTML = '<p style="padding: 20px;">載入商品中，請稍候...</p>';
 
   try {
-    const response = await fetch(`https://quotation-system-xi-blue.vercel.app/api/getProducts?sheet=${categorySheet}`);
+    const response = await fetch(`/api/getProducts?sheet=${encodeURIComponent(categorySheet)}`);
     const data = await response.json();
 
     if (data.error) {
