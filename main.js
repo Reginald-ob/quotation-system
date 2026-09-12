@@ -725,16 +725,45 @@ let currentSelectedVariant = null;
 let currentModalQty = 0; // 預設值改為 0
 
 // 開啟彈窗
+// 開啟彈窗 (含空白屬性自動過濾)
 window.openModal = function(productId) {
   currentModalProduct = allProducts[productId];
-  currentSelectedVariant = currentModalProduct.variants[0]; // 預設選取第一個規格
-  currentModalQty = 0; // 每次開啟彈窗時，數量預設為 0
+  currentSelectedVariant = currentModalProduct.variants[0];
+  currentModalQty = 0;
   
   document.getElementById('modal-name').innerText = currentModalProduct.name;
   document.getElementById('modal-desc').innerText = currentModalProduct.description || '暫無詳細介紹。';
-  document.getElementById('modal-qty-input').value = currentModalQty; // 更新 UI
+  document.getElementById('modal-qty-input').value = currentModalQty;
   document.getElementById('product-modal').style.display = 'flex';
-  
+
+  // 定義欲顯示的額外欄位與標籤名稱
+  const attributeDefinitions = [
+    { label: '毛重 (kg)', value: currentModalProduct.weight },
+    { label: '材質', value: currentModalProduct.material },
+    { label: '尺寸', value: currentModalProduct.dimensions },
+    { label: '工廠地理位置', value: currentModalProduct.factoryLocation },
+    { label: '工廠資訊', value: currentModalProduct.factoryInfo },
+    { label: '建議物流方式', value: currentModalProduct.shippingMethod }
+  ];
+
+  // 僅過濾出內容非空白的項目
+  const validAttributes = attributeDefinitions.filter(item => item.value && item.value.trim() !== '');
+  const attrContainer = document.getElementById('modal-attributes');
+
+  if (validAttributes.length > 0) {
+    attrContainer.style.display = 'block';
+    attrContainer.innerHTML = validAttributes.map(item => `
+      <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
+        <span style="color: #64748b; font-weight: 500;">${item.label}</span>
+        <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 65%; word-break: break-all;">${item.value}</span>
+      </div>
+    `).join('');
+  } else {
+    // 若該商品該列的所有屬性皆為空白，直接隱藏整個屬性框
+    attrContainer.style.display = 'none';
+    attrContainer.innerHTML = '';
+  }
+
   renderModalSpecs();
 };
 
