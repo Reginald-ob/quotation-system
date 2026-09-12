@@ -519,6 +519,7 @@ window.resumeCheckout = function(orderId, totalAmount) {
 };
 
 // ================= 8. 管理員後台邏輯 =================
+// 1. 輕量化後台載入 (初次載入不讀取 order_items)
 window.loadAdminPanel = async function() {
   document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'none';
@@ -526,12 +527,12 @@ window.loadAdminPanel = async function() {
   document.getElementById('admin-view').style.display = 'block';
 
   const container = document.getElementById('admin-orders-container');
-  container.innerHTML = '<p>載入所有訂單中...</p>';
+  container.innerHTML = '<p>載入訂單列表中...</p>';
 
-  // 獲取狀態為未付款與匯款待查的訂單
+  // 僅讀取核心欄位，排除大容量的 order_items 欄位以提升效能
   const { data, error } = await supabase
     .from('orders')
-    .select('*')
+    .select('order_id, user_id, user_no, user_name, total_amount, status, admin_note, is_payable, account_last_5, tax_id, created_at')
     .in('status', ['未付款', '匯款待查'])
     .order('created_at', { ascending: false });
 
@@ -545,7 +546,7 @@ window.loadAdminPanel = async function() {
     
     let actionHtml = '';
     
-    // 情境 A：未付款 (可修改總金額與備註)
+    // 情境 A：未付款 (改價與備註)
     if (order.status === '未付款') {
       actionHtml = `
         <div style="background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 4px;">
@@ -556,35 +557,97 @@ window.loadAdminPanel = async function() {
         </div>
       `;
     } 
-    // 情境 B：匯款待查 (核准並轉為進行中)
+    // 情境 B：匯款待查 (審核收款)
     else if (order.status === '匯款待查') {
       actionHtml = `
         <div style="background: #e2e3e5; padding: 10px; margin-top: 10px; border-radius: 4px;">
           <h4 style="margin-top: 0; color: #383d41;">匯款審核</h4>
           <p>客戶統編: ${order.tax_id || '無'} | 帳戶後五碼: <strong style="color:red; font-size: 1.2em;">${order.account_last_5}</strong></p>
-          <!-- 加入 id 以便控制狀態 -->
           <button id="btn-approve-${order.order_id}" class="btn-orange" style="background: #28a745;" onclick="adminApprovePayment('${order.order_id}')">確認已收款 (轉為進行中)</button>
         </div>
       `;
     }
 
-      card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
-          <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
-        </div>
-        <p style="color: #444; font-size: 0.95em; margin: 6px 0;">
-          客戶編號: <strong style="color: #007bff;">#${order.user_no || '舊單無編號'}</strong> | 
-          單位名稱: <strong>${order.user_name || '未建檔'}</strong>
-        </p>
-        <p>目前總額: <strong>$${order.total_amount}</strong></p>
-        ${actionHtml}
-      `;
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
+        <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
+      </div>
+      <p style="color: #444; font-size: 0.95em; margin: 6px 0;">
+        客戶編號: <strong style="color: #007bff;">#${order.user_no || '舊單無編號'}</strong> | 
+        單位名稱: <strong>${order.user_name || '未建檔'}</strong>
+      </p>
+      
+      <!-- 金額與倒三角展開按鈕列 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+        <div>目前總額: <strong>$${order.total_amount}</strong></div>
+        <button onclick="toggleAdminOrderDetails('${order.order_id}')" style="background: #f1f3f5; border: 1px solid #ced4da; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.85em; display: inline-flex; align-items: center; gap: 5px;">
+          <span id="arrow-${order.order_id}" style="display: inline-block; transition: transform 0.2s;">▼</span>
+          <span id="text-${order.order_id}">查看商品明細</span>
+        </button>
+      </div>
+
+      <!-- 延遲載入明細容器 (預設隱藏) -->
+      <div id="details-${order.order_id}" style="display: none; background: #fafafa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 10px;"></div>
+
+      ${actionHtml}
+    `;
     container.appendChild(card);
   });
 };
 
-// 2. 修復後的改價與狀態更新邏輯
+// 2. 隨選延遲載入 (Lazy Load) 訂單細項與伸縮切換
+window.toggleAdminOrderDetails = async function(orderId) {
+  const container = document.getElementById(`details-${orderId}`);
+  const arrow = document.getElementById(`arrow-${orderId}`);
+  const text = document.getElementById(`text-${orderId}`);
+
+  // 若目前已展開，則執行收合
+  if (container.style.display === 'block') {
+    container.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+    text.innerText = '查看商品明細';
+    return;
+  }
+
+  // 展開容器並翻轉箭頭
+  container.style.display = 'block';
+  arrow.style.transform = 'rotate(180deg)';
+  text.innerText = '收合明細';
+
+  // 檢查是否已讀取過，避免重複請求
+  if (container.dataset.loaded !== 'true') {
+    container.innerHTML = '<span style="color: #666; font-size: 0.85em;">讀取明細中...</span>';
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('order_items')
+      .eq('order_id', orderId)
+      .single();
+
+    if (error || !data || !data.order_items) {
+      container.innerHTML = '<span style="color: red; font-size: 0.85em;">明細載入失敗</span>';
+      return;
+    }
+
+    // 渲染商品明細
+    const itemsHtml = data.order_items.map(item => `
+      <div style="font-size: 0.9em; border-bottom: 1px dashed #ddd; padding: 6px 0;">
+        <strong style="color: #333;">${item.name}</strong><br>
+        ${item.specs.map(s => `
+          <span style="display: inline-block; margin-right: 12px; color: #555;">
+            - ${s.specName} (x${s.qty}) : $${s.qty * s.price}
+          </span>
+        `).join('')}
+      </div>
+    `).join('');
+
+    container.innerHTML = itemsHtml || '<span style="color: #888;">無明細資料</span>';
+    container.dataset.loaded = 'true';
+  }
+};
+
+// 3. 修復後的改價與狀態更新邏輯
 window.adminUpdateOrder = async function(orderId) {
   const btn = document.getElementById(`btn-update-${orderId}`);
   const newPriceInput = document.getElementById(`admin-price-${orderId}`).value;
