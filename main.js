@@ -74,7 +74,7 @@ async function loadUserProfile(user) {
 
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
-        .insert([{ id: user.id, email: user.email, name: inputName }])
+        .insert([{ id: user.id, name: inputName }])
         .select()
         .single();
 
