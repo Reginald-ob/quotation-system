@@ -219,13 +219,13 @@
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 20px;">
-      <!-- 跨境段 -->
+<!-- 跨境段 -->
       <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
         <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">一、跨境段運費標準 (單位: TWD)</h3>
         
         <!-- 海快區塊 -->
         <h4 style="color: var(--primary-orange); margin-bottom: 10px;">🚢 海運快遞 (海快)</h4>
-        <p style="color: #555; font-size: 0.9em; margin-top: 0;">時效預估：出貨前驗貨 1~3 個工作日 ＋ 跨境運輸 5~7 個工作日。</p>
+        <p style="color: #555; font-size: 0.9em; margin-top: 0;">時效預估：跨境運輸 5~7 個工作日 (外加出貨前驗貨 1~3 日，驗貨為可選項目)。</p>
 
         <div style="overflow-x: auto; margin-bottom: 15px;">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.95em; text-align: left;">
@@ -260,19 +260,52 @@
           </ul>
         </div>
 
-        <!-- 空運區塊 (預留) -->
+        <!-- 空運區塊 -->
         <h4 style="color: var(--primary-orange); margin-bottom: 10px; border-top: 1px dashed #ccc; padding-top: 15px;">✈️ 空運</h4>
-        <p style="color: #666; font-size: 0.95em;">（空運收費標準建檔中，敬請期待...）</p>
+        <p style="color: #555; font-size: 0.9em; margin-top: 0;">時效預估：跨境運輸 3~5 個工作日 (外加出貨前驗貨 1~3 日，驗貨為可選項目)。</p>
+
+        <div style="overflow-x: auto; margin-bottom: 15px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.95em; text-align: left;">
+            <thead>
+              <tr style="background: #e9ecef;">
+                <th style="padding: 10px; border: 1px solid #ccc;">貨物類型</th>
+                <th style="padding: 10px; border: 1px solid #ccc;">1kg 以內 (低消一口價)</th>
+                <th style="padding: 10px; border: 1px solid #ccc;">超過 1kg (每公斤單價)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ccc;"><strong>普貨</strong></td>
+                <td style="padding: 10px; border: 1px solid #ccc;">$250 (已含包稅)</td>
+                <td style="padding: 10px; border: 1px solid #ccc;">$150 / kg (已含包稅)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div style="background: #e2e3e5; padding: 10px 12px; border-radius: 4px; font-size: 0.9em; color: #383d41; margin-bottom: 15px; border-left: 4px solid #6c757d;">
+          <strong>📌 物流建議：</strong>空運若非必要，不建議運輸較低價值之商品或大型重物。
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 12px; border-radius: 4px; font-size: 0.9em; color: #856404; margin-bottom: 20px;">
+          <strong style="display: block; margin-bottom: 5px;">⚠️ 特殊情況之額外收費標準：</strong>
+          <ul style="margin: 0; padding-left: 20px; line-height: 1.6;">
+            <li><strong>超長費：</strong>單件任何一邊長度 > 150cm，每件加收 $150。</li>
+            <li><strong>超材費：</strong>運費基本以「實重」計費，若單件貨物體積大於 6 材，每材將另加收 $40。</li>
+            <li><strong>轉棧板費：</strong>若符合「單批總計 > 20kg」、「三邊長度總和 ≥ 195cm」或「單件尺寸 > 10材」任一條件，將產生額外的轉棧板費用。</li>
+          </ul>
+        </div>
 
         <!-- 採購與物流建議 -->
         <div style="background: #e2e3e5; border-left: 4px solid #6c757d; padding: 15px; margin-top: 20px; font-size: 0.9em; color: #383d41;">
           <strong style="display: block; margin-bottom: 8px; font-size: 1.05em;">💡 採購與物流委託建議：</strong>
           <ol style="margin: 0; padding-left: 20px; line-height: 1.6;">
             <li>請顧客下單購買貨物、或委託我方公司進行客製化採購前，<strong>務必先確認或詢問客服/老闆</strong>，評估該商品是否會產生實重計算以外的費用（如超材、超長或棧板費）。</li>
-            <li>顧客下單、委託採購前，若不確定您的貨物適用哪一條物流路線（普貨/特貨），<strong>建議先向客服/老闆詢問確認</strong>，以確保物流估算準確。</li>
+            <li>顧客下單、委託採購前，若不確定您的貨物適用哪一條物流路線（海快/空運/普特貨），<strong>建議先向客服/老闆詢問確認</strong>，以確保物流估算準確。</li>
           </ol>
         </div>
       </section>
+      
       <!-- 國內小材積 -->
       <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
         <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">二、國內派送 - 小材積標準</h3>
