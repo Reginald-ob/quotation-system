@@ -10,6 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 let cartState = {}; 
 let currentProducts = {}; 
 let allProducts = {};
+let currentProfile = null;
 
 // 2. 登入與視圖控制
 document.addEventListener('DOMContentLoaded', checkSession);
@@ -32,13 +33,15 @@ async function executeLogin() {
   initAppView(data.user);
 }
 
-function initAppView(user) {
+// 初始化視圖 (更新)
+async function initAppView(user) {
   currentUser = user; 
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('app-view').style.display = 'flex';
-  document.getElementById('user-info').innerText = `帳號: ${user.email}`;
   
-  // 判定並顯示管理員按鈕
+  // 載入或引導建檔 6 位數客戶編號與單位名稱
+  await loadUserProfile(user);
+
   const adminEmails = ['daidai@admin.com', 'admin@admin.com'];
   const adminBtn = document.getElementById('admin-btn');
   if (adminBtn) {
@@ -46,6 +49,38 @@ function initAppView(user) {
   }
 
   window.loadCategory('日用品'); 
+}
+
+// 處理用戶資料建檔與讀取
+async function loadUserProfile(user) {
+  let { data: profile, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  // 若尚未建檔，引導輸入姓名/單位名稱並自動生成 6 位數編號
+  if (!profile) {
+    let inputName = prompt("【首次登入建檔】請輸入您的「真實姓名」或「公司/球館單位名稱」：");
+    inputName = (inputName && inputName.trim()) ? inputName.trim() : "未命名客戶";
+
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert([{ id: user.id, email: user.email, name: inputName }])
+      .select()
+      .single();
+      
+    profile = newProfile;
+  } else if (!profile.name || profile.name.trim() === '' || profile.name === '未命名客戶') {
+    let inputName = prompt("請補填您的「姓名」或「公司單位名稱」，以便管理員核對訂單：");
+    if (inputName && inputName.trim()) {
+      await supabase.from('profiles').update({ name: inputName.trim() }).eq('id', user.id);
+      profile.name = inputName.trim();
+    }
+  }
+
+  currentProfile = profile;
+  document.getElementById('user-info').innerText = `客戶編號: #${profile?.user_no || '------'} | ${profile?.name || user.email}`;
 }
 
 window.loadCategory = async function(categorySheet) {
@@ -178,31 +213,32 @@ function calculateCartTotal() {
   document.getElementById('cart-total-amount').innerText = totalAmount;
 }
 
-// ================= 5. 結帳與寫入資料庫邏輯 =================
+// ================= 5. 結帳與寫入資料庫邏輯 (稅額計算修正版) =================
 document.getElementById('checkout-btn').addEventListener('click', processCheckout);
 
 async function processCheckout() {
   const totalAmountStr = document.getElementById('cart-total-amount').innerText;
-  const baseAmount = parseInt(totalAmountStr);
   
-  if (baseAmount === 0) return alert('請至少選擇一項商品且數量大於 0');
+  // 1. 金額計算：商品售價已為含稅價
+  const finalTotal = parseInt(totalAmountStr, 10); // 應付總額 (含稅合計)
+  if (isNaN(finalTotal) || finalTotal === 0) return alert('請至少選擇一項商品且數量大於 0');
 
-  // 1. 計算金額與生成編號
-  const taxAmount = Math.round(baseAmount * 0.05);
-  const finalTotal = baseAmount + taxAmount;
-  
+  const untaxedAmount = Math.round(finalTotal / 1.05); // 商品總計 (未稅)
+  const taxAmount = finalTotal - untaxedAmount;        // 營業稅 (5%)
+
+  // 2. 生成訂單編號 (2 英文字母 + 5 碼數字)
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const randomLetters = letters[Math.floor(Math.random() * 26)] + letters[Math.floor(Math.random() * 26)];
   const randomNumbers = Math.floor(10000 + Math.random() * 90000);
   const orderId = `${randomLetters}${randomNumbers}`;
 
-  // 2. 雙軌判斷門檻 ($500)
+  // 3. 雙軌判斷門檻 ($500)
   const isPayable = finalTotal > 500;
   const adminNote = isPayable ? null : '該訂單未達預付貨款門檻，入庫後連同運費合併結帳';
 
-  // 3. 序列化商品明細與生成 UI 字串
+  // 4. 序列化商品明細
   const orderItems = [];
-  let itemsHtml = ''; // 供結帳頁面顯示用的 HTML
+  let itemsHtml = '';
 
   for (const pid in cartState) {
     if (cartState[pid].isChecked) {
@@ -215,7 +251,6 @@ async function processCheckout() {
         specHtml += `<div style="margin-left: 10px; color: #555; font-size: 0.9em;">- ${specKey} (x${item.qty}) : $${item.qty * item.price}</div>`;
       }
       
-      // 確保傳給資料庫的格式與之前一致
       orderItems.push({
         product_id: pid,
         name: cartState[pid].name,
@@ -231,10 +266,12 @@ async function processCheckout() {
     }
   }
 
-  // 4. 寫入 Supabase
+  // 5. 寫入 Supabase (儲存客戶 6 碼編號與單位名稱)
   const payload = {
     order_id: orderId,
     user_id: currentUser.id,
+    user_no: currentProfile ? currentProfile.user_no : null,
+    user_name: currentProfile ? currentProfile.name : '未填寫',
     order_items: orderItems,
     total_amount: finalTotal,
     status: '未付款',
@@ -244,22 +281,20 @@ async function processCheckout() {
   };
 
   document.getElementById('checkout-btn').innerText = '處理中...';
-  
   const { error } = await supabase.from('orders').insert([payload]);
-  
   document.getElementById('checkout-btn').innerText = '前往結帳';
 
   if (error) {
     console.error(error);
-    return alert('建立訂單失敗，請稍後再試。');
+    return alert('建立訂單失敗: ' + error.message);
   }
 
-  // 5. 建單成功：清空本地購物車並關閉可能開著的彈窗
+  // 6. 建單成功：清空本地購物車
   cartState = {};
   calculateCartTotal();
   if (typeof closeCartModal === 'function') closeCartModal();
 
-  // 6. 視圖切換與 UI 渲染 (注入訂單明細)
+  // 7. 渲染結帳頁面明細 (顯示修正後的稅額)
   document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'block';
   
@@ -273,9 +308,9 @@ async function processCheckout() {
       </div>
 
       <div style="margin-top: 15px; text-align: right; border-top: 2px solid #ccc; padding-top: 10px;">
-        <p style="margin: 5px 0;">商品總計: $${baseAmount}</p>
+        <p style="margin: 5px 0;">商品總計 (未稅): $${untaxedAmount}</p>
         <p style="margin: 5px 0;">營業稅 (5%): $${taxAmount}</p>
-        <h3 style="color: var(--primary-orange); margin: 10px 0 0 0;">應付總額: $${finalTotal}</h3>
+        <h3 style="color: var(--primary-orange); margin: 10px 0 0 0;">應付總額 (含稅): $${finalTotal}</h3>
       </div>
     </div>
   `;
@@ -509,15 +544,18 @@ window.loadAdminPanel = async function() {
       `;
     }
 
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
-        <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
-      </div>
-      <p style="color: #666; font-size: 0.9em;">用戶 ID: ${order.user_id}</p>
-      <p>目前總額: <strong>$${order.total_amount}</strong></p>
-      ${actionHtml}
-    `;
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 1.2em;">訂單號: ${order.order_id}</strong>
+          <span style="background: #000; color:#fff; padding: 3px 8px; border-radius: 4px;">${order.status}</span>
+        </div>
+        <p style="color: #444; font-size: 0.95em; margin: 6px 0;">
+          客戶編號: <strong style="color: #007bff;">#${order.user_no || '舊單無編號'}</strong> | 
+          單位名稱: <strong>${order.user_name || '未建檔'}</strong>
+        </p>
+        <p>目前總額: <strong>$${order.total_amount}</strong></p>
+        ${actionHtml}
+      `;
     container.appendChild(card);
   });
 };
