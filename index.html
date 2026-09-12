@@ -22,6 +22,8 @@
       <div style="display: flex; gap: 15px; align-items: center;">
         <span id="user-info"></span>
         <button id="admin-btn" class="btn-orange" onclick="loadAdminPanel()" style="display: none; background: #dc3545;">後台管理</button>
+        <button class="btn-orange" onclick="showShippingCalcView()" style="padding: 5px 10px; background: #20c997;">跨境運費試算</button>
+        <button class="btn-orange" onclick="showShippingRatesView()" style="padding: 5px 10px; background: #6f42c1;">物流收費標準</button>
         <button class="btn-orange" onclick="showAppView()" style="padding: 5px 10px;">返回購物</button>
         <button class="btn-orange" onclick="loadMyOrders()" style="padding: 5px 10px;">我的訂單</button>
         <button class="btn-orange" onclick="logout()" style="background: #6c757d;">登出</button>
@@ -160,15 +162,82 @@
     <div class="modal-content" style="max-width: 500px;">
       <span class="close-btn" onclick="closeCartModal()">&times;</span>
       <h3 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">採購車明細</h3>
-      <div id="cart-items-container" style="max-height: 50vh; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
+      <div id="cart-items-container" style="max-height: 45vh; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
         <!-- JS 動態生成購物車內容 -->
       </div>
-      <div style="text-align: right; font-weight: bold; font-size: 1.2em; border-top: 2px solid #eee; padding-top: 15px;">
-        總計(含稅): $<span id="cart-modal-total">0</span>
+      
+      <!-- 重量與金額總計 -->
+      <div style="border-top: 2px solid #eee; padding-top: 15px;">
+        <div style="display: flex; justify-content: space-between; font-size: 1.05em; color: #444; margin-bottom: 8px;">
+          <span>預估總毛重:</span>
+          <span><strong id="cart-modal-weight" style="color: #007bff; font-size: 1.2em;">0.00</strong> kg</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 1.2em; font-weight: bold; margin-bottom: 12px;">
+          <span>總計 (含稅):</span>
+          <span style="color: var(--primary-orange);">$<span id="cart-modal-total">0</span></span>
+        </div>
+        
+        <!-- 運費與重量警示標籤 -->
+        <div id="cart-weight-warn-always" style="display: none; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 8px 10px; border-radius: 4px; font-size: 0.85em; margin-bottom: 6px;">
+          ⚠️ 此重量及運費金額為估算值，實際以物流入庫秤重之計算為準。
+        </div>
+        <div id="cart-weight-warn-missing" style="display: none; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 8px 10px; border-radius: 4px; font-size: 0.85em;">
+          ⚠️ 此訂單部分商品尚未有重量估算資料，以實際入庫為準。
+        </div>
       </div>
     </div>
   </div>
+  <!-- 跨境運費試算視圖 (預設隱藏) -->
+  <div id="shipping-calc-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+      <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
+      <h2 style="margin: 0;">跨境運費試算</h2>
+    </div>
 
+    <!-- 子分頁標籤 -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+      <button class="category-btn calc-tab-btn active" style="width: auto;" onclick="switchShippingCalcTab(this, 'calc-sea-fast')">海快雜貨</button>
+      <button class="category-btn calc-tab-btn" style="width: auto;" onclick="switchShippingCalcTab(this, 'calc-air')">空運</button>
+    </div>
+
+    <!-- 海快試算區 -->
+    <div id="calc-sea-fast" class="calc-tab-content">
+      <p style="color: #666;">海快雜貨試算表單開發中...</p>
+    </div>
+
+    <!-- 空運試算區 -->
+    <div id="calc-air" class="calc-tab-content" style="display: none;">
+      <p style="color: #666;">空運試算表單開發中...</p>
+    </div>
+  </div>
+
+  <!-- 物流收費標準視圖 (預設隱藏) -->
+  <div id="shipping-rates-view" style="display: none; padding: 2rem; max-width: 850px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+      <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
+      <h2 style="margin: 0;">物流收費標準</h2>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <!-- 跨境段 -->
+      <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
+        <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">一、跨境段運費標準</h3>
+        <p style="color: #666; font-size: 0.95em;">（此處預留海快每公斤級距、空運每公斤價格及低消標準）</p>
+      </section>
+
+      <!-- 國內小材積 -->
+      <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
+        <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">二、國內派送 - 小材積標準</h3>
+        <p style="color: #666; font-size: 0.95em;">（此處預留超商取件、新竹/大榮宅配小件材積限制與收費規範）</p>
+      </section>
+
+      <!-- 國內大材積 -->
+      <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
+        <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">三、國內派送 - 大材積 / 超大件標準</h3>
+        <p style="color: #666; font-size: 0.95em;">（此處預留棧板包裝、大型家具/重型設備回頭車與專車派送費用規範）</p>
+      </section>
+    </div>
+  </div>
   <script type="module" src="main.js"></script>
 </body>
 </html>

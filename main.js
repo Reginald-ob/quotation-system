@@ -387,12 +387,42 @@ document.getElementById('submit-remittance-btn')?.addEventListener('click', asyn
 // ================= 7. 我的訂單與視圖切換邏輯 =================
 let allMyOrders = []; // 暫存歷史訂單
 
-// 切換回購物主畫面
-window.showAppView = function() {
+// 輔助：隱藏所有主內容視圖
+function hideAllMainViews() {
+  document.getElementById('app-view').style.display = 'none';
   document.getElementById('checkout-view').style.display = 'none';
   document.getElementById('orders-view').style.display = 'none';
   document.getElementById('admin-view').style.display = 'none';
+  document.getElementById('shipping-calc-view').style.display = 'none';
+  document.getElementById('shipping-rates-view').style.display = 'none';
+}
+
+// 導覽切換至：返回購物
+window.showAppView = function() {
+  hideAllMainViews();
   document.getElementById('app-view').style.display = 'flex';
+};
+
+// 導覽切換至：跨境運費試算
+window.showShippingCalcView = function() {
+  hideAllMainViews();
+  document.getElementById('shipping-calc-view').style.display = 'block';
+};
+
+// 導覽切換至：物流收費標準
+window.showShippingRatesView = function() {
+  hideAllMainViews();
+  document.getElementById('shipping-rates-view').style.display = 'block';
+};
+
+// 試算分頁切換 (海快 / 空運)
+window.switchShippingCalcTab = function(btnElement, tabId) {
+  const tabs = document.querySelectorAll('.calc-tab-btn');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  btnElement.classList.add('active');
+
+  document.querySelectorAll('.calc-tab-content').forEach(el => el.style.display = 'none');
+  document.getElementById(tabId).style.display = 'block';
 };
 
 // 載入我的訂單 (更新：每次載入時重置標籤顏色至「未付款」)
@@ -810,24 +840,26 @@ document.getElementById('product-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-// 從彈窗加入購物車
+// 1. 從彈窗加入購物車 (加入 weight 記錄)
 window.addToCartFromModal = function() {
-  // 確保取得當前輸入框內的最新數值
   const qtyInputVal = parseInt(document.getElementById('modal-qty-input').value, 10);
   currentModalQty = isNaN(qtyInputVal) ? 0 : qtyInputVal;
 
-  if (currentModalQty <= 0) {
-    return alert('請輸入大於 0 的採購數量');
-  }
+  if (currentModalQty <= 0) return alert('請輸入大於 0 的採購數量');
 
   const prodId = currentModalProduct.id;
   const variant = currentSelectedVariant;
   const specKey = variant.specName;
-  
+
   if (!cartState[prodId]) {
-    cartState[prodId] = { name: currentModalProduct.name, isChecked: true, specs: {} };
+    cartState[prodId] = {
+      name: currentModalProduct.name,
+      weight: currentModalProduct.weight || '', // 保存該產品之毛重字串
+      isChecked: true,
+      specs: {}
+    };
   }
-  
+
   if (!cartState[prodId].specs[specKey]) {
     cartState[prodId].specs[specKey] = {
       specName: specKey,
@@ -835,36 +867,50 @@ window.addToCartFromModal = function() {
       qty: 0
     };
   }
-  
+
   cartState[prodId].specs[specKey].qty += currentModalQty;
   
   calculateCartTotal(); 
   closeModal();
-  
   alert(`已將 ${currentModalQty} 件 ${currentModalProduct.name} (${specKey}) 加入採購車`);
 };
 
 // ================= 10. 採購車明細彈窗邏輯 =================
+// 2. 開啟採購車彈窗 (含毛重加總與雙重警示邏輯)
 window.openCartModal = function() {
   const container = document.getElementById('cart-items-container');
   container.innerHTML = '';
+  
   let totalAmount = 0;
+  let totalWeight = 0;
+  let hasZeroWeightItem = false;
   let hasItems = false;
 
   for (const pid in cartState) {
     if (cartState[pid].isChecked) {
+      // 解析單件毛重數值 (移除 kg 等文字並轉成數字)
+      const rawWeight = cartState[pid].weight || '';
+      const unitWeight = parseFloat(String(rawWeight).replace(/[^\d.-]/g, '')) || 0;
+
       for (const specKey in cartState[pid].specs) {
         const item = cartState[pid].specs[specKey];
         if (item.qty > 0) {
           hasItems = true;
           totalAmount += item.qty * item.price;
-          
+
+          // 計算毛重
+          if (unitWeight > 0) {
+            totalWeight += unitWeight * item.qty;
+          } else {
+            hasZeroWeightItem = true;
+          }
+
           const itemDiv = document.createElement('div');
           itemDiv.style = "display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 10px 0;";
           itemDiv.innerHTML = `
             <div style="flex: 1;">
               <div style="font-weight: bold; font-size: 0.95em;">${cartState[pid].name}</div>
-              <div style="color: #666; font-size: 0.85em;">規格: ${specKey}</div>
+              <div style="color: #666; font-size: 0.85em;">規格: ${specKey} | 單重: ${unitWeight > 0 ? unitWeight + 'kg' : '尚未建檔'}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
               <div style="color: #ee4d2d; font-weight: bold;">$${item.price}</div>
@@ -884,8 +930,22 @@ window.openCartModal = function() {
   if (!hasItems) {
     container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px 0;">採購車目前是空的</p>';
   }
-  
+
   document.getElementById('cart-modal-total').innerText = totalAmount;
+  document.getElementById('cart-modal-weight').innerText = totalWeight.toFixed(2);
+
+  // 警示顯示控制
+  const warnAlways = document.getElementById('cart-weight-warn-always');
+  const warnMissing = document.getElementById('cart-weight-warn-missing');
+
+  if (hasItems) {
+    warnAlways.style.display = 'block';
+    warnMissing.style.display = hasZeroWeightItem ? 'block' : 'none';
+  } else {
+    warnAlways.style.display = 'none';
+    warnMissing.style.display = 'none';
+  }
+
   document.getElementById('cart-modal').style.display = 'flex';
 };
 
