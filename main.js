@@ -51,36 +51,60 @@ async function initAppView(user) {
   window.loadCategory('日用品'); 
 }
 
-// 處理用戶資料建檔與讀取
+// 處理用戶資料建檔與讀取 (防重複詢問 + 錯誤可視化)
 async function loadUserProfile(user) {
-  let { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  // 若尚未建檔，引導輸入姓名/單位名稱並自動生成 6 位數編號
-  if (!profile) {
-    let inputName = prompt("【首次登入建檔】請輸入您的「真實姓名」或「公司/球館單位名稱」：");
-    inputName = (inputName && inputName.trim()) ? inputName.trim() : "未命名客戶";
-
-    const { data: newProfile, error: insertError } = await supabase
+  try {
+    // 1. 查詢用戶 Profile
+    let { data: profile, error: fetchError } = await supabase
       .from('profiles')
-      .insert([{ id: user.id, email: user.email, name: inputName }])
-      .select()
-      .single();
-      
-    profile = newProfile;
-  } else if (!profile.name || profile.name.trim() === '' || profile.name === '未命名客戶') {
-    let inputName = prompt("請補填您的「姓名」或「公司單位名稱」，以便管理員核對訂單：");
-    if (inputName && inputName.trim()) {
-      await supabase.from('profiles').update({ name: inputName.trim() }).eq('id', user.id);
-      profile.name = inputName.trim();
-    }
-  }
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
 
-  currentProfile = profile;
-  document.getElementById('user-info').innerText = `客戶編號: #${profile?.user_no || '------'} | ${profile?.name || user.email}`;
+    if (fetchError) {
+      console.error("讀取 Profile 失敗:", fetchError);
+      // 若資料表不存在或權限不足，直接中斷避免無限 prompt
+      return alert(`Profile 讀取失敗: ${fetchError.message}`);
+    }
+
+    // 2. 情境 A：尚未建檔 (真正的新用戶)
+    if (!profile) {
+      let inputName = prompt("【首次登入建檔】請輸入您的「真實姓名」或「公司/球館單位名稱」：");
+      inputName = (inputName && inputName.trim()) ? inputName.trim() : "個人買家";
+
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert([{ id: user.id, email: user.email, name: inputName }])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("建檔寫入失敗:", insertError);
+        return alert(`建檔失敗，請將此訊息提供給管理員: ${insertError.message}`);
+      }
+
+      profile = newProfile;
+      alert(`建檔成功！您的專屬客戶編號為: #${profile.user_no}`);
+    } 
+    // 3. 情境 B：已建檔但名稱完全為空字串
+    else if (!profile.name || profile.name.trim() === '') {
+      let inputName = prompt("請補填您的「姓名」或「公司單位名稱」：");
+      if (inputName && inputName.trim()) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ name: inputName.trim() })
+          .eq('id', user.id);
+
+        if (!updateError) profile.name = inputName.trim();
+      }
+    }
+
+    currentProfile = profile;
+    document.getElementById('user-info').innerText = `客戶編號: #${profile?.user_no || '------'} | ${profile?.name || user.email}`;
+
+  } catch (err) {
+    console.error("loadUserProfile 未預期錯誤:", err);
+  }
 }
 
 window.loadCategory = async function(categorySheet) {
