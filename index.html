@@ -218,29 +218,172 @@
   </div>
   
   <!-- 跨境運費試算視圖 (預設隱藏) -->
+<!-- 跨境運費試算視圖 -->
   <div id="shipping-calc-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
       <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
-      <h2 style="margin: 0;">跨境運費試算</h2>
+      <h2 style="margin: 0;">跨境運費試算器</h2>
     </div>
 
-    <!-- 子分頁標籤 -->
+    <!-- 子分頁切換標籤 -->
     <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-      <button class="category-btn calc-tab-btn active" style="width: auto;" onclick="switchShippingCalcTab(this, 'calc-sea-fast')">海快雜貨</button>
-      <button class="category-btn calc-tab-btn" style="width: auto;" onclick="switchShippingCalcTab(this, 'calc-air')">空運</button>
+      <button class="category-btn calc-tab-btn active" style="width: auto; padding: 8px 16px;" onclick="switchShippingCalcTab(this, 'calc-sea-fast')">🚢 海運快遞 (海快)</button>
+      <button class="category-btn calc-tab-btn" style="width: auto; padding: 8px 16px;" onclick="switchShippingCalcTab(this, 'calc-air')">✈️ 空運</button>
     </div>
 
-    <!-- 海快試算區 -->
+    <!-- 1. 海快試算區塊 -->
     <div id="calc-sea-fast" class="calc-tab-content">
-      <p style="color: #666;">海快雜貨試算表單開發中...</p>
+      <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px;">
+        <h3 style="margin-top: 0; color: #333;">🚢 海快運費試算</h3>
+        
+        <!-- 貨物類別選單 -->
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #444;">貨物類別：</label>
+          <label style="margin-right: 20px; cursor: pointer;">
+            <input type="radio" name="sea-cargo-type" value="normal" checked onchange="runSeaCalc()"> 
+            普貨 <span style="color: #666; font-size: 0.9em;">(低消5kg一口價$410，>5kg $62/kg)</span>
+          </label>
+          <label style="cursor: pointer;">
+            <input type="radio" name="sea-cargo-type" value="special" onchange="runSeaCalc()"> 
+            特貨 <span style="color: #666; font-size: 0.9em;">(低消5kg一口價$460，>5kg $72/kg)</span>
+          </label>
+        </div>
+
+        <!-- 總重量輸入 -->
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #444;">
+            預估毛重 (kg) <span style="color: red;">*</span>：
+          </label>
+          <input type="number" id="sea-weight-input" min="0" step="0.1" placeholder="請輸入重量，例如 6.5" 
+                 oninput="runSeaCalc()" style="width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
+        </div>
+
+        <!-- 進階尺寸/超材/超長試算 (折疊選填) -->
+        <details style="background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+          <summary style="font-weight: bold; cursor: pointer; color: #007bff;">＋ 進階尺寸與附加費用試算 (選填)</summary>
+          <div style="margin-top: 12px; font-size: 0.9em; color: #555;">
+            <p style="margin: 0 0 8px 0;">輸入單件外箱尺寸（單位：cm），系統將自動計算材積與超長費用：</p>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <span>長：<input type="number" id="sea-length" placeholder="長 cm" min="0" oninput="runSeaCalc()" style="width: 75px; padding: 4px;"></span>
+              <span>寬：<input type="number" id="sea-width" placeholder="寬 cm" min="0" oninput="runSeaCalc()" style="width: 75px; padding: 4px;"></span>
+              <span>高：<input type="number" id="sea-height" placeholder="高 cm" min="0" oninput="runSeaCalc()" style="width: 75px; padding: 4px;"></span>
+            </div>
+            <div style="margin-top: 8px; color: #666;">
+              目前材積：<strong id="sea-cft-display">0</strong> 材（超過 6 材部分每材 +$40）
+            </div>
+          </div>
+        </details>
+
+        <!-- 試算結果面板 -->
+        <div style="background: #fff; border: 2px solid #20c997; border-radius: 6px; padding: 15px; margin-top: 15px;">
+          <h4 style="margin: 0 0 10px 0; color: #20c997;">試算結果明細</h4>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>計費重量：</span>
+            <span><strong id="sea-res-billed-weight">0</strong> kg</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>基本運費 (含包稅)：</span>
+            <span>$<span id="sea-res-base-fee">0</span></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>特殊附加費 (超長/超材)：</span>
+            <span>$<span id="sea-res-extra-fee">0</span></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 1.25em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px; color: var(--primary-orange);">
+            <span>預估總運費：</span>
+            <span>$<span id="sea-res-total-fee">0</span></span>
+          </div>
+        </div>
+
+        <!-- 警示區塊 (動態呈現) -->
+        <div id="sea-pallet-warn" style="display: none; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; font-size: 0.88em; margin-top: 15px;">
+          ⚠️ <strong>轉棧板費提醒：</strong>貨物已達轉棧板門檻（總重 ≥ 20kg、三邊總和 ≥ 195cm 或單件 > 10材），物流端將產生額外轉棧板費用。建議重量控制在 19～20kg 內或拆單出貨以節省支出。
+        </div>
+        <div id="sea-length-warn" style="display: none; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 8px 10px; border-radius: 4px; font-size: 0.88em; margin-top: 10px;">
+          ⚠️ <strong>超長警示：</strong>單邊長度超過 150cm，已加計超長費 $150。
+        </div>
+      </div>
     </div>
 
-    <!-- 空運試算區 -->
+    <!-- 2. 空運試算區塊 -->
     <div id="calc-air" class="calc-tab-content" style="display: none;">
-      <p style="color: #666;">空運試算表單開發中...</p>
+      <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px;">
+        <h3 style="margin-top: 0; color: #333;">✈️ 空運運費試算</h3>
+
+        <div style="background: #e2e3e5; padding: 8px 12px; border-radius: 4px; font-size: 0.88em; color: #383d41; margin-bottom: 15px; border-left: 4px solid #6c757d;">
+          📌 <strong>物流提醒：</strong>空運時效約 3~5 工作日，若非急件不建議運送低價值商品或大型重物。
+        </div>
+
+        <!-- 貨物類別選單 -->
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #444;">貨物類別：</label>
+          <label style="margin-right: 20px; cursor: pointer;">
+            <input type="radio" name="air-cargo-type" value="normal" checked onchange="runAirCalc()"> 
+            普貨 <span style="color: #666; font-size: 0.9em;">(低消1kg一口價$250，>1kg $150/kg)</span>
+          </label>
+          <label style="cursor: pointer;">
+            <input type="radio" name="air-cargo-type" value="special" onchange="runAirCalc()"> 
+            特貨 <span style="color: #666; font-size: 0.9em;">(低消1kg一口價$260，>1kg $160/kg)</span>
+          </label>
+        </div>
+
+        <!-- 總重量輸入 -->
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 6px; color: #444;">
+            預估毛重 (kg) <span style="color: red;">*</span>：
+          </label>
+          <input type="number" id="air-weight-input" min="0" step="0.1" placeholder="請輸入重量，例如 2.3" 
+                 oninput="runAirCalc()" style="width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
+        </div>
+
+        <!-- 進階尺寸/超材/超長試算 (折疊選填) -->
+        <details style="background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+          <summary style="font-weight: bold; cursor: pointer; color: #007bff;">＋ 進階尺寸與附加費用試算 (選填)</summary>
+          <div style="margin-top: 12px; font-size: 0.9em; color: #555;">
+            <p style="margin: 0 0 8px 0;">輸入單件外箱尺寸（單位：cm），系統將自動計算材積與超長費用：</p>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <span>長：<input type="number" id="air-length" placeholder="長 cm" min="0" oninput="runAirCalc()" style="width: 75px; padding: 4px;"></span>
+              <span>寬：<input type="number" id="air-width" placeholder="寬 cm" min="0" oninput="runAirCalc()" style="width: 75px; padding: 4px;"></span>
+              <span>高：<input type="number" id="air-height" placeholder="高 cm" min="0" oninput="runAirCalc()" style="width: 75px; padding: 4px;"></span>
+            </div>
+            <div style="margin-top: 8px; color: #666;">
+              目前材積：<strong id="air-cft-display">0</strong> 材（超過 6 材部分每材 +$40）
+            </div>
+          </div>
+        </details>
+
+        <!-- 試算結果面板 -->
+        <div style="background: #fff; border: 2px solid #6f42c1; border-radius: 6px; padding: 15px; margin-top: 15px;">
+          <h4 style="margin: 0 0 10px 0; color: #6f42c1;">試算結果明細</h4>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>計費重量：</span>
+            <span><strong id="air-res-billed-weight">0</strong> kg</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>基本運費 (含包稅)：</span>
+            <span>$<span id="air-res-base-fee">0</span></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95em;">
+            <span>特殊附加費 (超長/超材)：</span>
+            <span>$<span id="air-res-extra-fee">0</span></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 1.25em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px; color: var(--primary-orange);">
+            <span>預估總運費：</span>
+            <span>$<span id="air-res-total-fee">0</span></span>
+          </div>
+        </div>
+
+        <!-- 警示區塊 (動態呈現) -->
+        <div id="air-pallet-warn" style="display: none; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; font-size: 0.88em; margin-top: 15px;">
+          ⚠️ <strong>轉棧板費提醒：</strong>貨物已達轉棧板門檻（總重 ≥ 20kg、三邊總和 ≥ 195cm 或單件 > 10材），物流端將產生額外轉棧板費用。
+        </div>
+        <div id="air-length-warn" style="display: none; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 8px 10px; border-radius: 4px; font-size: 0.88em; margin-top: 10px;">
+          ⚠️ <strong>超長警示：</strong>單邊長度超過 150cm，已加計超長費 $150。
+        </div>
+      </div>
     </div>
   </div>
-
+  
   <!-- 物流收費標準視圖 (預設隱藏) -->
   <div id="shipping-rates-view" style="display: none; padding: 2rem; max-width: 850px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">

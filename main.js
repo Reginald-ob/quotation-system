@@ -1036,3 +1036,133 @@ window.updateCartShippingEstimate = function() {
     feeElement.innerText = `$${fee}`;
   }
 };
+
+// ================= 11. 跨境運費試算器核心邏輯 =================
+
+// 計算尺寸延伸之材積與附加費用
+function evaluateDimensionsAndSurcharges(length, width, height) {
+  let cft = 0;
+  let extraFee = 0;
+  let isOverLength = false;
+  let isPalletBySize = false;
+
+  if (length > 0 && width > 0 && height > 0) {
+    // 材積公式: (長 × 寬 × 高) / 28317
+    cft = (length * width * height) / 28317;
+
+    // 1. 超長費：任一邊長 > 150cm 加收 $150
+    if (length > 150 || width > 150 || height > 150) {
+      isOverLength = true;
+      extraFee += 150;
+    }
+
+    // 2. 超材費：> 6 材，每超出一材加收 $40 (無條件進位每整材)
+    if (cft > 6) {
+      const overCft = Math.ceil(cft - 6);
+      extraFee += overCft * 40;
+    }
+
+    // 3. 尺寸轉棧板判定：三邊和 >= 195cm 或 單件 > 10 材
+    const sumDimensions = length + width + height;
+    if (sumDimensions >= 195 || cft > 10) {
+      isPalletBySize = true;
+    }
+  }
+
+  return {
+    cft: parseFloat(cft.toFixed(2)),
+    extraFee,
+    isOverLength,
+    isPalletBySize
+  };
+}
+
+// 1. 執行海快試算
+window.runSeaCalc = function() {
+  const weightInput = parseFloat(document.getElementById('sea-weight-input').value) || 0;
+  const cargoType = document.querySelector('input[name="sea-cargo-type"]:checked')?.value || 'normal';
+
+  const length = parseFloat(document.getElementById('sea-length').value) || 0;
+  const width = parseFloat(document.getElementById('sea-width').value) || 0;
+  const height = parseFloat(document.getElementById('sea-height').value) || 0;
+
+  // 計算尺寸與附加費
+  const dimResult = evaluateDimensionsAndSurcharges(length, width, height);
+  document.getElementById('sea-cft-display').innerText = dimResult.cft;
+
+  // 計費重量：<= 5.09kg 算 5kg，超過整數進位
+  let billedWeight = 0;
+  if (weightInput > 0) {
+    billedWeight = weightInput <= 5.09 ? 5 : Math.ceil(weightInput);
+  }
+
+  // 計算基本運費 (含包稅)
+  let baseFee = 0;
+  if (billedWeight > 0) {
+    if (cargoType === 'normal') {
+      // 普貨：低消 5kg 一口價 $410 ($360 + 5*10)，> 5kg 每 kg $62
+      baseFee = billedWeight <= 5 ? 410 : (billedWeight * 62);
+    } else {
+      // 特貨：低消 5kg 一口價 $460 ($410 + 5*10)，> 5kg 每 kg $72
+      baseFee = billedWeight <= 5 ? 460 : (billedWeight * 72);
+    }
+  }
+
+  const totalFee = baseFee + dimResult.extraFee;
+
+  // 渲染試算結果
+  document.getElementById('sea-res-billed-weight').innerText = billedWeight;
+  document.getElementById('sea-res-base-fee').innerText = baseFee;
+  document.getElementById('sea-res-extra-fee').innerText = dimResult.extraFee;
+  document.getElementById('sea-res-total-fee').innerText = totalFee;
+
+  // 警示判定 (總重 >= 20kg 或符合尺寸條件)
+  const isPallet = weightInput >= 20 || dimResult.isPalletBySize;
+  document.getElementById('sea-pallet-warn').style.display = isPallet ? 'block' : 'none';
+  document.getElementById('sea-length-warn').style.display = dimResult.isOverLength ? 'block' : 'none';
+};
+
+// 2. 執行空運試算
+window.runAirCalc = function() {
+  const weightInput = parseFloat(document.getElementById('air-weight-input').value) || 0;
+  const cargoType = document.querySelector('input[name="air-cargo-type"]:checked')?.value || 'normal';
+
+  const length = parseFloat(document.getElementById('air-length').value) || 0;
+  const width = parseFloat(document.getElementById('air-width').value) || 0;
+  const height = parseFloat(document.getElementById('air-height').value) || 0;
+
+  // 計算尺寸與附加費
+  const dimResult = evaluateDimensionsAndSurcharges(length, width, height);
+  document.getElementById('air-cft-display').innerText = dimResult.cft;
+
+  // 計費重量：<= 1.09kg 算 1kg，超過整數進位
+  let billedWeight = 0;
+  if (weightInput > 0) {
+    billedWeight = weightInput <= 1.09 ? 1 : Math.ceil(weightInput);
+  }
+
+  // 計算基本運費 (含包稅)
+  let baseFee = 0;
+  if (billedWeight > 0) {
+    if (cargoType === 'normal') {
+      // 普貨：低消 1kg 一口價 $250，> 1kg 每 kg $150
+      baseFee = billedWeight <= 1 ? 250 : (billedWeight * 150);
+    } else {
+      // 特貨：低消 1kg 一口價 $260，> 1kg 每 kg $160
+      baseFee = billedWeight <= 1 ? 260 : (billedWeight * 160);
+    }
+  }
+
+  const totalFee = baseFee + dimResult.extraFee;
+
+  // 渲染試算結果
+  document.getElementById('air-res-billed-weight').innerText = billedWeight;
+  document.getElementById('air-res-base-fee').innerText = baseFee;
+  document.getElementById('air-res-extra-fee').innerText = dimResult.extraFee;
+  document.getElementById('air-res-total-fee').innerText = totalFee;
+
+  // 警示判定 (總重 >= 20kg 或符合尺寸條件)
+  const isPallet = weightInput >= 20 || dimResult.isPalletBySize;
+  document.getElementById('air-pallet-warn').style.display = isPallet ? 'block' : 'none';
+  document.getElementById('air-length-warn').style.display = dimResult.isOverLength ? 'block' : 'none';
+};
