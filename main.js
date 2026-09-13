@@ -11,6 +11,7 @@ let cartState = {};
 let currentProducts = {}; 
 let allProducts = {};
 let currentProfile = null;
+let cartCurrentWeight = 0;
 
 // 2. 登入與視圖控制
 document.addEventListener('DOMContentLoaded', checkSession);
@@ -934,6 +935,13 @@ window.openCartModal = function() {
   document.getElementById('cart-modal-total').innerText = totalAmount;
   document.getElementById('cart-modal-weight').innerText = totalWeight.toFixed(2);
 
+  // 在 openCartModal 內的總重量計算完成後加入：
+  cartCurrentWeight = totalWeight; // 存入全域變數供選單切換使用
+  document.getElementById('cart-modal-weight').innerText = totalWeight.toFixed(2);
+  
+  // 初始化計算當前物流方式的預估運費
+  updateCartShippingEstimate();
+
   // 警示顯示控制
   const warnAlways = document.getElementById('cart-weight-warn-always');
   const warnMissing = document.getElementById('cart-weight-warn-missing');
@@ -974,5 +982,39 @@ window.updateCartItemQty = function(pid, specKey, change) {
     
     calculateCartTotal(); // 重新計算底部總金額
     openCartModal();      // 重新渲染彈窗畫面
+  }
+};
+
+// 核心運費試算函式 (均以普貨標準計算)
+function calculateShippingFee(weight, method) {
+  if (weight <= 0) return 0;
+  
+  if (method === 'sea_fast') {
+    // 海快普貨：低消 5kg (一口價 $360 + 總重量 × $10 包稅費)，> 5kg 每 kg $62
+    if (weight <= 5) {
+      return Math.round(360 + (weight * 10));
+    } else {
+      return Math.round(weight * 62);
+    }
+  } else if (method === 'air') {
+    // 空運普貨：低消 1kg ($250 包稅)，> 1kg 每 kg $150
+    if (weight <= 1) {
+      return 250;
+    } else {
+      return Math.round(weight * 150);
+    }
+  }
+  return 0;
+}
+
+// 當下拉選單切換時即時更新預估運費
+window.updateCartShippingEstimate = function() {
+  const methodSelect = document.getElementById('cart-shipping-method');
+  const method = methodSelect ? methodSelect.value : 'sea_fast';
+  const fee = calculateShippingFee(cartCurrentWeight, method);
+  
+  const feeElement = document.getElementById('cart-modal-shipping-fee');
+  if (feeElement) {
+    feeElement.innerText = `$${fee}`;
   }
 };

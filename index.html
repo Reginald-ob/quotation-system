@@ -157,23 +157,40 @@
     </div>
   </div>
 
-  <!-- 採購車明細彈窗 -->
+<!-- 採購車明細彈窗 -->
   <div id="cart-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content" style="max-width: 500px;">
       <span class="close-btn" onclick="closeCartModal()">&times;</span>
       <h3 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">採購車明細</h3>
-      <div id="cart-items-container" style="max-height: 45vh; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
+      <div id="cart-items-container" style="max-height: 40vh; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
         <!-- JS 動態生成購物車內容 -->
       </div>
       
-      <!-- 重量與金額總計 -->
-      <div style="border-top: 2px solid #eee; padding-top: 15px;">
-        <div style="display: flex; justify-content: space-between; font-size: 1.05em; color: #444; margin-bottom: 8px;">
+      <!-- 重量、物流選單與運費試算 -->
+      <div style="border-top: 2px solid #eee; padding-top: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.05em; color: #444; margin-bottom: 8px;">
           <span>預估總毛重:</span>
           <span><strong id="cart-modal-weight" style="color: #007bff; font-size: 1.2em;">0.00</strong> kg</span>
         </div>
+
+        <!-- 選擇物流方式選單 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; color: #444; margin-bottom: 8px;">
+          <span>選擇物流方式 (普貨標準):</span>
+          <select id="cart-shipping-method" onchange="updateCartShippingEstimate()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.95em; outline: none;">
+            <option value="sea_fast">海快 (普貨)</option>
+            <option value="air">空運 (普貨)</option>
+          </select>
+        </div>
+
+        <!-- 預估總運費 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.05em; color: #444; margin-bottom: 8px;">
+          <span>預估總運費:</span>
+          <span><strong id="cart-modal-shipping-fee" style="color: #28a745; font-size: 1.1em;">$0</strong></span>
+        </div>
+
+        <!-- 商品總計 (含稅) -->
         <div style="display: flex; justify-content: space-between; font-size: 1.2em; font-weight: bold; margin-bottom: 12px;">
-          <span>總計 (含稅):</span>
+          <span>商品總計 (含稅):</span>
           <span style="color: var(--primary-orange);">$<span id="cart-modal-total">0</span></span>
         </div>
         
@@ -187,6 +204,7 @@
       </div>
     </div>
   </div>
+  
   <!-- 跨境運費試算視圖 (預設隱藏) -->
   <div id="shipping-calc-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
@@ -309,7 +327,7 @@
             <li>顧客下單、委託採購前，若不確定您的貨物適用哪一條物流路線（海快/空運/普特貨），<strong>建議先向客服/老闆詢問確認</strong>，以確保物流估算準確。</li>
           </ol>
         </div>
-        <!-- 四、海快運輸安全須知 -->
+        <!-- 重要 : 海快運輸安全須知 -->
       <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; margin-top: 20px;">
         <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">四、海快運輸安全須知</h3>
         <p style="color: #555; font-size: 0.9em; margin-top: 0;">發貨前請務必自行嚴格檢查，<strong>嚴禁發送禁運、限運物品</strong>，以保障通關與運輸安全。</p>
@@ -329,7 +347,7 @@
         </div>
       </section>
 
-      <!-- 五、空運運輸安全須知 -->
+      <!-- 重要 : 空運運輸安全須知 -->
       <section style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; margin-top: 20px;">
         <h3 style="margin-top: 0; color: #333; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">五、空運運輸安全須知</h3>
         <p style="color: #555; font-size: 0.9em; margin-top: 0;">空運安檢極為嚴格，寄件前請務必仔細核對以下禁運清單：</p>
@@ -348,7 +366,7 @@
           <strong>⚠️ 違規處理：</strong>若私自隱瞞寄送導致安檢扣貨、退回或產生罰款，<strong>所有後果與費用概由客戶自行承擔</strong>；情節嚴重或屢次違規者，將直接終止合作關係。
         </div>
       </section>
-      
+
       </section>
       
       <!-- 國內小材積 -->
