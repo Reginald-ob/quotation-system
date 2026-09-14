@@ -1166,3 +1166,108 @@ window.runAirCalc = function() {
   document.getElementById('air-pallet-warn').style.display = isPallet ? 'block' : 'none';
   document.getElementById('air-length-warn').style.display = dimResult.isOverLength ? 'block' : 'none';
 };
+
+// ================= 側邊欄折疊與產品模糊搜尋邏輯 =================
+
+// 切換左側側邊欄折疊狀態
+window.toggleSidebar = function() {
+  const wrapper = document.getElementById('sidebar-wrapper');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  const text = document.getElementById('sidebar-toggle-text');
+
+  if (!wrapper) return;
+  wrapper.classList.toggle('collapsed');
+
+  if (wrapper.classList.contains('collapsed')) {
+    if (icon) icon.innerText = '▶';
+    if (text) text.innerText = '';
+  } else {
+    if (icon) icon.innerText = '◀';
+    if (text) text.innerText = '收合分類';
+  }
+};
+
+// 開啟中央模糊搜索彈窗
+window.openSearchModal = function() {
+  const modal = document.getElementById('fuzzy-search-modal');
+  const input = document.getElementById('fuzzy-search-input');
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => { if (input) input.focus(); }, 50);
+  }
+};
+
+// 關閉中央模糊搜索彈窗
+window.closeSearchModal = function() {
+  const modal = document.getElementById('fuzzy-search-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+// 點擊背景遮罩關閉彈窗
+window.handleSearchOverlayClick = function(event) {
+  if (event.target.id === 'fuzzy-search-modal') {
+    closeSearchModal();
+  }
+};
+
+// 點擊建議標籤快速搜尋[cite: 1]
+window.selectSearchKeyword = function(keyword) {
+  const input = document.getElementById('fuzzy-search-input');
+  if (input) input.value = keyword;
+  executeFuzzySearch();
+};
+
+// 執行產品模糊搜索 (比對產品名稱與產品介紹)[cite: 1]
+window.executeFuzzySearch = function() {
+  const input = document.getElementById('fuzzy-search-input');
+  const query = (input ? input.value : '').trim().toLowerCase();
+  if (!query) return alert('請輸入搜尋關鍵字');
+
+  // 取消側邊欄所有分類的選取狀態
+  document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
+
+  const container = document.getElementById('product-list');
+  if (!container) return;
+
+  const matchedProducts = {};
+
+  // 遍歷全域 allProducts 物件比對名稱與詳細介紹[cite: 1]
+  for (const id in allProducts) {
+    const prod = allProducts[id];
+    const nameMatch = prod.name && prod.name.toLowerCase().includes(query);
+    const descMatch = prod.description && prod.description.toLowerCase().includes(query);
+
+    if (nameMatch || descMatch) {
+      matchedProducts[id] = prod;
+    }
+  }
+
+  closeSearchModal();
+
+  // 渲染搜尋比對結果
+  container.innerHTML = '';
+  const matchedKeys = Object.keys(matchedProducts);
+
+  if (matchedKeys.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; color: #868e96; padding: 48px 16px;">
+        <p style="font-size: 1.1em; margin-bottom: 8px;">未找到符合「<strong>${query}</strong>」的相關產品</p>
+        <span style="font-size: 0.9em;">請確認輸入詞或切換其他分類查看。</span>
+      </div>
+    `;
+    return;
+  }
+
+  matchedKeys.forEach(id => {
+    const p = matchedProducts[id];
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.onclick = () => openModal(p.id);
+    card.innerHTML = `
+      <img src="${p.variants[0].image}" alt="${p.name}">
+      <h4>${p.name}</h4>
+      <p style="color: #ee4d2d; font-weight: bold;">$${p.minPrice} 起</p>
+    `;
+    container.appendChild(card);
+  });
+};
