@@ -226,20 +226,49 @@ body {
       display: block;
     }
 
+/* ================= 手機版選單抽屜化與商品防擠壓 ================= */
     @media (max-width: 768px) {
       .layout-body {
+        position: relative !important;
         gap: 8px !important;
       }
 
-      /* 中小型螢幕 (520px ~ 768px)：橫向排列 3 欄 */
-      .product-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 8px !important;
+      /* 1. 展開狀態：轉為懸浮抽屜，不擠壓商品網格 */
+      .sidebar-wrapper:not(.collapsed) {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        z-index: 990;
+        width: 220px !important;
+        height: 100%;
+        min-height: 80vh;
+        box-shadow: 6px 0 20px rgba(0, 0, 0, 0.25);
       }
 
-      /* 側邊欄收合時佔位微調，釋出更多寬度給商品 */
+      /* 2. 收合狀態：固定在左側微小寬度 */
       .sidebar-wrapper.collapsed {
         width: 42px !important;
+        position: sticky;
+        top: 10px;
+        z-index: 10;
+      }
+
+      /* 3. 商品網格：始終獲得全螢幕剩餘寬度，穩定維持 2 欄 */
+      .product-grid {
+        flex: 1;
+        width: calc(100% - 50px) !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      .product-card {
+        padding: 8px !important;
+      }
+      
+      .product-card h4 {
+        font-size: 0.9em;
+        line-height: 1.35;
+        margin: 6px 0;
       }
     }
 

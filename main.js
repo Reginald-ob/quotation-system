@@ -162,6 +162,43 @@ window.switchCategory = function(button, categorySheet) {
   window.loadCategory(categorySheet);
 };
 
+// 行動端初始化收合側邊欄
+function initMobileSidebarState() {
+  if (window.innerWidth <= 768) {
+    const wrapper = document.getElementById('sidebar-wrapper');
+    const icon = document.getElementById('sidebar-toggle-icon');
+    const text = document.getElementById('sidebar-toggle-text');
+    if (wrapper && !wrapper.classList.contains('collapsed')) {
+      wrapper.classList.add('collapsed');
+      if (icon) icon.innerText = '▶';
+      if (text) text.innerText = '';
+    }
+  }
+}
+
+// 頁面載入完成時執行初始化，並防止 DOM 已經 ready 時遺漏
+document.addEventListener('DOMContentLoaded', initMobileSidebarState);
+initMobileSidebarState();
+
+// 手機端點選分類後自動收合選單
+const originalSwitchCategory = window.switchCategory;
+window.switchCategory = function(btnElement, categoryName) {
+  if (typeof originalSwitchCategory === 'function') {
+    originalSwitchCategory(btnElement, categoryName);
+  }
+
+  if (window.innerWidth <= 768) {
+    const wrapper = document.getElementById('sidebar-wrapper');
+    if (wrapper && !wrapper.classList.contains('collapsed')) {
+      wrapper.classList.add('collapsed');
+      const icon = document.getElementById('sidebar-toggle-icon');
+      const text = document.getElementById('sidebar-toggle-text');
+      if (icon) icon.innerText = '▶';
+      if (text) text.innerText = '';
+    }
+  }
+};
+
 function renderProductGrid(products) {
   const grid = document.getElementById('product-grid');
   grid.innerHTML = '';
