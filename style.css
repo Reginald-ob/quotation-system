@@ -127,3 +127,76 @@ body {
   box-sizing: border-box;
   z-index: 999;
 }
+
+/* ================= 響應式 RWD 基礎優化 (行動裝置優先) ================= */
+    @media (max-width: 768px) {
+      body {
+        padding: 5px;
+        font-size: 14px;
+      }
+
+      /* 1. 頂部導覽列：改為垂直堆疊並支援橫向滑動 */
+      .header {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 10px;
+        padding: 10px;
+      }
+      .header > div {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+        gap: 6px !important;
+      }
+      .header button {
+        flex-shrink: 0;
+        font-size: 0.85em;
+        padding: 6px 10px !important;
+      }
+
+      /* 2. 商品網格：手機版預設改為 2 欄排版 */
+      .product-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      /* 3. 彈窗容器：適應手機螢幕大小，限制高度並啟用捲動 */
+      .modal-content {
+        width: 95% !important;
+        max-width: 100% !important;
+        max-height: 85vh !important;
+        overflow-y: auto !important;
+        margin: auto !important;
+        padding: 15px !important;
+      }
+
+      /* 4. 底部購物車固定列：防止按鈕擠壓換行 */
+      .cart-bar {
+        padding: 10px 15px !important;
+        font-size: 0.85em;
+      }
+      .cart-bar button {
+        padding: 6px 10px !important;
+        font-size: 0.85em;
+      }
+
+      /* 5. 表格與物流標準頁面適配 */
+      table {
+        font-size: 0.85em !important;
+      }
+      th, td {
+        padding: 6px 8px !important;
+      }
+      #shipping-rates-view, #shipping-calc-view {
+        padding: 15px !important;
+        margin: 10px !important;
+      }
+    }
+
+    /* 超小螢幕 (如 iPhone SE 等舊款手機) 轉為單欄 */
+    @media (max-width: 420px) {
+      .product-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
