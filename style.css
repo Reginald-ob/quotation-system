@@ -25,10 +25,98 @@ body {
 /* 應用主體區塊 */
 #app-view { display: none; flex-direction: column; min-height: 100vh; }
 
+/* ================= 頂部導覽列標準化修復 ================= */
 .header {
-  background: var(--bg-white); padding: 1rem 2rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex;
-  justify-content: space-between; align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  box-sizing: border-box;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-brand h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #212529;
+  white-space: nowrap;
+}
+
+.user-info {
+  font-size: 0.85rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  color: #ffffff;
+}
+
+.nav-btn:hover { opacity: 0.88; }
+.btn-teal { background: #20c997; }
+.btn-purple { background: #6f42c1; }
+.btn-red { background: #dc3545; }
+.btn-gray { background: #6c757d; }
+
+/* 行動裝置響應式適配 (768px 以下) */
+@media (max-width: 768px) {
+  .header {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px;
+  }
+
+  .header-brand {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .header-brand h2 {
+    font-size: 1.15rem;
+  }
+
+  /* 強制橫向滾動，按鈕不折行、不擠壓 */
+  .header-nav {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+
+  .header-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
 }
 
 .layout-body { display: flex; flex: 1; padding-bottom: 80px; align-items: flex-start; }

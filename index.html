@@ -17,19 +17,23 @@
 
   <!-- 主應用視圖 -->
   <div id="app-view">
-    <div class="header">
-      <h2>批發採購報價單</h2>
-      <div style="display: flex; gap: 15px; align-items: center;">
-        <span id="user-info"></span>
-        <button id="admin-btn" class="btn-orange" onclick="loadAdminPanel()" style="display: none; background: #dc3545;">後台管理</button>
-        <button class="btn-orange" onclick="showShippingCalcView()" style="padding: 5px 10px; background: #20c997;">跨境運費試算</button>
-        <button class="btn-orange" onclick="showShippingRatesView()" style="padding: 5px 10px; background: #6f42c1;">物流收費標準</button>
-        <button class="btn-orange" onclick="showAppView()" style="padding: 5px 10px;">返回購物</button>
-        <button class="btn-orange" onclick="loadMyOrders()" style="padding: 5px 10px;">我的訂單</button>
-        <button class="btn-orange" onclick="logout()" style="background: #6c757d;">登出</button>
+    <header class="header">
+      <!-- 上半部：標題與用戶資訊 -->
+      <div class="header-brand">
+        <h2>批發採購報價單</h2>
+        <span id="user-info" class="user-info"></span>
       </div>
-    </div>
 
+      <!-- 下半部：功能導覽列 (支援手機橫向滑動防擠壓) -->
+      <nav class="header-nav" id="header-nav">
+        <button class="nav-btn btn-orange" onclick="showAppView()">返回購物</button>
+        <button class="nav-btn btn-teal" onclick="showShippingCalcView()">跨境運費試算</button>
+        <button class="nav-btn btn-purple" onclick="showShippingRatesView()">物流收費標準</button>
+        <button class="nav-btn btn-orange" onclick="loadMyOrders()">我的訂單</button>
+        <button id="admin-btn" class="nav-btn btn-red" onclick="loadAdminPanel()" style="display: none;">後台管理</button>
+        <button class="nav-btn btn-gray" onclick="logout()">登出</button>
+      </nav>
+    </header>
 <div class="layout-body" style="position: relative; display: flex; align-items: flex-start; gap: 15px; width: 100%;">
     <!-- 1. 可折疊側邊欄容器 -->
     <aside id="sidebar-wrapper" class="sidebar-wrapper">
