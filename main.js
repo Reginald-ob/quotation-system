@@ -1217,21 +1217,21 @@ window.selectSearchKeyword = function(keyword) {
   executeFuzzySearch();
 };
 
-// 執行產品模糊搜索 (比對產品名稱與產品介紹)[cite: 1]
+// 執行產品模糊搜索 (修正 ID 為 product-grid)
 window.executeFuzzySearch = function() {
   const input = document.getElementById('fuzzy-search-input');
   const query = (input ? input.value : '').trim().toLowerCase();
   if (!query) return alert('請輸入搜尋關鍵字');
 
-  // 取消側邊欄所有分類的選取狀態
+  // 取消側邊欄分類選取狀態
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
 
-  const container = document.getElementById('product-list');
+  // 修正：對應 index.html 的 product-grid
+  const container = document.getElementById('product-grid');
   if (!container) return;
 
   const matchedProducts = {};
 
-  // 遍歷全域 allProducts 物件比對名稱與詳細介紹[cite: 1]
   for (const id in allProducts) {
     const prod = allProducts[id];
     const nameMatch = prod.name && prod.name.toLowerCase().includes(query);
@@ -1244,7 +1244,6 @@ window.executeFuzzySearch = function() {
 
   closeSearchModal();
 
-  // 渲染搜尋比對結果
   container.innerHTML = '';
   const matchedKeys = Object.keys(matchedProducts);
 

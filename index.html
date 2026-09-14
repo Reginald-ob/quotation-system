@@ -30,8 +30,8 @@
       </div>
     </div>
 
-<div class="layout-body" style="position: relative; display: flex; align-items: flex-start;">
-    <!-- 可折疊側邊欄容器 -->
+<div class="layout-body" style="position: relative; display: flex; align-items: flex-start; gap: 15px; width: 100%;">
+    <!-- 1. 可折疊側邊欄容器 -->
     <aside id="sidebar-wrapper" class="sidebar-wrapper">
       <!-- 折疊控制列 -->
       <button type="button" class="sidebar-toggle-bar" onclick="toggleSidebar()" aria-label="收合選單">
@@ -39,7 +39,7 @@
         <span id="sidebar-toggle-text">收合分類</span>
       </button>
 
-      <!-- 模糊搜索觸發框 (點擊開啟中央浮動彈窗) -->
+      <!-- 模糊搜索觸發框 -->
       <div class="search-trigger-box" onclick="openSearchModal()">
         <span style="font-size: 1.1em;">🔍</span>
         <span class="search-trigger-text">產品模糊搜尋...</span>
@@ -67,19 +67,22 @@
       </div>
     </aside>
 
-    <!-- 中央浮動模糊搜索彈窗 (預設隱藏，含背景模糊濾鏡) -->
+    <!-- 2. 右側產品展示區 (補回此容器) -->
+    <div class="product-grid" id="product-grid" style="flex: 1;">
+      <!-- 產品卡片由 JS 動態生成 -->
+    </div>
+
+    <!-- 3. 中央浮動模糊搜索彈窗 -->
     <div id="fuzzy-search-modal" class="fuzzy-search-overlay" onclick="handleSearchOverlayClick(event)">
       <div class="fuzzy-search-card">
         <button type="button" class="fuzzy-close-btn" onclick="closeSearchModal()">&times;</button>
         <h3 style="margin-top: 0; margin-bottom: 16px; color: #212529; font-size: 1.25em;">產品模糊搜尋</h3>
         
-        <!-- 搜尋輸入框列 -->
         <div class="fuzzy-input-group">
           <input type="text" id="fuzzy-search-input" placeholder="輸入關鍵字 (如：SGS、輕奢、碳纖維)..." onkeydown="if(event.key==='Enter') executeFuzzySearch()">
           <button type="button" class="btn-orange" onclick="executeFuzzySearch()" style="padding: 10px 18px; white-space: nowrap;">搜尋</button>
         </div>
 
-        <!-- 熱門關鍵字標籤 -->
         <div style="font-size: 0.88em; color: #6c757d; margin-bottom: 8px;">熱門建議搜尋詞：</div>
         <div class="fuzzy-tags-container">
           <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('SGS')">SGS</button>
@@ -88,6 +91,7 @@
         </div>
       </div>
     </div>
+  </div>
   <div class="cart-bar">
     <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
     <div style="display: flex; gap: 10px;">
