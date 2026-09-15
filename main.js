@@ -306,6 +306,9 @@ window.openCheckoutView = function() {
   hideAllMainViews();
   document.getElementById('checkout-view').style.display = 'block';
 
+  // 確保進入全新結帳流程時，欄位全部解鎖
+  toggleCheckoutLock(false);
+
   currentCheckoutSubtotal = 0;
   for (const pid in cartState) {
     if (cartState[pid].isChecked) {
@@ -1512,3 +1515,73 @@ window.addEventListener('scroll', () => {
     }
   }
 }, { passive: true });
+
+// 切換結帳頁面的編輯 / 唯讀(匯款)模式
+window.toggleCheckoutLock = function(isLocked) {
+  // 1. 隱藏或顯示「確認並送出訂單」按鈕
+  const submitBtn = document.getElementById('btn-submit-order');
+  if (submitBtn) {
+    submitBtn.style.display = isLocked ? 'none' : 'block';
+  }
+
+  // 2. 鎖定固定的收件人與物流選項欄位
+  const targetIds = [
+    'recipient-name', 
+    'recipient-phone', 
+    'shipping-method-select'
+  ];
+  
+  targetIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.disabled = isLocked;
+      el.style.backgroundColor = isLocked ? '#e9ecef' : ''; // 加上灰色背景提示不可編輯
+    }
+  });
+
+  // 3. 鎖定材積選擇 Radio 按鈕
+  const tierRadios = document.querySelectorAll('input[name="shipping-tier"]');
+  tierRadios.forEach(radio => radio.disabled = isLocked);
+
+  // 4. 鎖定動態生成的欄位 (門市名稱、郵局、詳細地址)
+  const dynamicContainer = document.getElementById('dynamic-shipping-fields');
+  if (dynamicContainer) {
+    const dynamicInputs = dynamicContainer.querySelectorAll('input');
+    dynamicInputs.forEach(el => {
+      el.disabled = isLocked;
+      el.style.backgroundColor = isLocked ? '#e9ecef' : '';
+    });
+  }
+};
+
+window.openPaymentModal = function(orderId, amount) {
+  currentPaymentOrderId = orderId;
+
+  // 1. 確保顯示結帳視圖並更新對應訂單金額
+  hideAllMainViews();
+  const checkoutView = document.getElementById('checkout-view');
+  if (checkoutView) checkoutView.style.display = 'block';
+
+  const checkoutSubtotal = document.getElementById('checkout-subtotal');
+  const checkoutTotal = document.getElementById('checkout-final-total');
+  if (checkoutSubtotal) checkoutSubtotal.innerText = amount;
+  if (checkoutTotal) checkoutTotal.innerText = amount;
+
+  // 2. 關鍵：鎖定上方所有配送資訊欄位，並隱藏「確認並送出訂單」按鈕
+  toggleCheckoutLock(true);
+
+  // 3. 填入匯款彈窗資訊並開啟
+  const payOrderId = document.getElementById('pay-order-id');
+  const payOrderAmount = document.getElementById('pay-order-amount');
+  const paymentModal = document.getElementById('payment-modal');
+
+  if (payOrderId) payOrderId.innerText = orderId;
+  if (payOrderAmount) payOrderAmount.innerText = amount;
+  if (paymentModal) paymentModal.style.display = 'flex';
+};
+
+//當使用者在匯款彈窗點擊 x 關閉時，若回到的是「我的訂單」視圖而非結帳畫面，確保 window.closePaymentModal 同步收起彈窗
+window.closePaymentModal = function() {
+  const modal = document.getElementById('payment-modal');
+  if (modal) modal.style.display = 'none';
+};
