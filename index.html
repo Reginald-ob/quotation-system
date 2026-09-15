@@ -105,68 +105,100 @@
   </div>
   </div>
 
-  <!-- 結帳頁面：預設隱藏，僅由 main.js 的視圖切換函式顯示 -->
+<!-- 結帳與匯款視圖 (支援結帳模式 / 匯款模式雙向切換) -->
   <div id="checkout-view" style="display: none; padding: 20px; max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <!-- 頂部標題與返回按鈕 -->
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-      <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
-      <h2 style="margin: 0; font-size: 1.3em;">訂單結帳與配送資料</h2>
+      <button id="checkout-back-btn" class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
+      <h2 id="checkout-view-title" style="margin: 0; font-size: 1.3em;">訂單結帳與配送資料</h2>
     </div>
 
-    <form id="checkout-form" onsubmit="event.preventDefault(); if (typeof submitOrder === 'function') submitOrder(); else alert('目前請先由購物車的「前往結帳」建立訂單。');">
-      <!-- 基礎收件人資訊 -->
+    <!-- 區塊 A：建立訂單時輸入配送資料之控件 (匯款模式時隱藏) -->
+    <div id="delivery-inputs-container">
       <div style="margin-bottom: 15px;">
         <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">收件人姓名 *</label>
-        <input type="text" id="recipient-name" required placeholder="請填寫真實姓名" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <input type="text" id="recipient-name" placeholder="請填寫真實姓名" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
       </div>
 
       <div style="margin-bottom: 15px;">
         <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">收件人聯絡電話 *</label>
-        <input type="tel" id="recipient-phone" required placeholder="請輸入手機號碼 (09xxxxxxxx)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <input type="tel" id="recipient-phone" placeholder="請輸入手機號碼 (09xxxxxxxx)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
       </div>
 
-      <!-- 第一層：材積選擇 -->
       <div style="margin-bottom: 15px;">
         <label style="display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">貨物材積類型 *</label>
         <div style="display: flex; gap: 15px;">
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="shipping-tier" value="small" checked onchange="if (typeof handleShippingTierChange === 'function') handleShippingTierChange()"><span>小材積 (默認)</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="radio" name="shipping-tier" value="large" onchange="if (typeof handleShippingTierChange === 'function') handleShippingTierChange()"><span>大材積 / 超大件</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="shipping-tier" value="small" checked onchange="handleShippingTierChange()">
+            <span>小材積 (默認)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="shipping-tier" value="large" onchange="handleShippingTierChange()">
+            <span>大材積 / 超大件</span>
+          </label>
         </div>
       </div>
 
-      <!-- 第二層：物流方式選擇 -->
       <div style="margin-bottom: 15px;">
         <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">國內配送方式 *</label>
-        <select id="shipping-method-select" onchange="if (typeof handleShippingMethodChange === 'function') handleShippingMethodChange()" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.95em;"></select>
+        <select id="shipping-method-select" onchange="handleShippingMethodChange()" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.95em;"></select>
         <p id="shipping-notice-text" style="color: #6c757d; font-size: 0.85em; margin: 6px 0 0 0;"></p>
       </div>
 
-      <!-- 第三層：動態輸入欄位 -->
       <div id="dynamic-shipping-fields" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 15px;"></div>
+    </div>
 
-      <!-- 費用明細 -->
-      <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 20px; font-size: 0.95em;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>商品總金額:</span><span>$<strong id="checkout-subtotal">0</strong></span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>國內運費:</span><span id="checkout-shipping-fee-display" style="color: #28a745; font-weight: bold;">$38</span></div>
-        <div style="display: flex; justify-content: space-between; font-size: 1.15em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;"><span>應付總額:</span><span style="color: var(--primary-orange);">$<span id="checkout-final-total">0</span></span></div>
-        <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
+    <!-- 區塊 B：唯讀配送資料 (不可更動的文字，僅匯款模式時顯示) -->
+    <div id="delivery-readonly-container" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+      <h4 style="margin-top: 0; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 6px;">📦 訂單配送資料 (唯讀)</h4>
+      <p style="margin: 6px 0; font-size: 0.95em;"><strong>訂單編號：</strong><span id="readonly-order-id">-</span></p>
+      <p style="margin: 6px 0; font-size: 0.95em;"><strong>配送資訊：</strong><span id="readonly-delivery-info">-</span></p>
+    </div>
+
+    <!-- 區塊 C：金額明細 (共用) -->
+    <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 20px; font-size: 0.95em;">
+      <div id="checkout-calc-rows">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>商品總金額:</span>
+          <span>$<strong id="checkout-subtotal">0</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>國內運費:</span>
+          <span id="checkout-shipping-fee-display" style="color: #28a745; font-weight: bold;">$38</span>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 1.15em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;">
+        <span>應付總額:</span>
+        <span style="color: var(--primary-orange);">$<span id="checkout-final-total">0</span></span>
+      </div>
+      <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
+    </div>
+
+    <!-- 區塊 D：送出訂單按鈕 (僅結帳模式顯示) -->
+    <button type="button" id="btn-submit-order" class="btn-orange" onclick="submitOrder()" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認並送出訂單</button>
+
+    <!-- 區塊 E：匯款帳戶資訊與回報欄位 (僅匯款模式顯示) -->
+    <div id="payment-report-container" style="display: none;">
+      <div style="background: #e9ecef; border-left: 4px solid #007bff; border-radius: 4px; padding: 12px; margin-bottom: 15px; font-size: 0.9em; color: #333;">
+        <strong style="display: block; margin-bottom: 5px; color: #0056b3;">🏦 官方匯款帳戶資訊：</strong>
+        銀行名稱：台灣銀行 (004)<br>
+        帳號：123-001-987654<br>
+        戶名：優選供應鏈科技有限公司
       </div>
 
-      <button type="submit" id="btn-submit-order" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認並送出訂單</button>
-    </form>
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">匯款帳號末五碼 *</label>
+        <input type="text" id="pay-account-last-5" maxlength="5" placeholder="請輸入 5 碼數字" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+      </div>
 
-    <!-- 舊有訂單建立流程使用的相容區塊 -->
-    <div id="checkout-summary" style="margin-top: 20px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;"></div>
-    <div id="remittance-form" style="display: none; flex-direction: column; gap: 10px;">
-      <h3>填寫匯款資料</h3>
-      <p style="color: #666; font-size: 0.9em;">收款銀行：000 (測試銀行) / 帳號：1234567890</p>
-      <input type="text" id="bank-last-5" placeholder="匯款帳號後 5 碼 (必填)" maxlength="5" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-      <input type="text" id="tax-id" placeholder="統一編號 (非必填)" maxlength="8" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-      <button class="btn-orange" id="submit-remittance-btn">確認送出匯款資訊</button>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">公司統一編號 (開立發票，選填)</label>
+        <input type="text" id="pay-tax-id" maxlength="8" placeholder="若需統編請填寫 8 碼" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+      </div>
+
+      <button type="button" id="btn-submit-payment" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px; background: #28a745;">確認送出匯款核帳資料</button>
     </div>
-    <div id="low-amount-warning" style="display: none; color: #856404; background: #fff3cd; padding: 15px; border-radius: 4px; font-weight: bold;">⚠️ 該訂單未達預付貨款門檻，入庫後連同運費合併結帳。</div>
-    <button onclick="showAppView()" style="margin-top: 20px; padding: 10px; cursor: pointer; width: 100%;">返回購物 / 查看我的訂單</button>
   </div>
-
     <!-- 我的訂單視圖 (預設隱藏) -->
     <div id="orders-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
       

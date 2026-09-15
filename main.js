@@ -294,20 +294,31 @@ const LOGISTICS_CONFIG = {
 
 let currentCheckoutSubtotal = 0;
 let currentShippingFee = 38;
+let currentPayingOrderId = null;
 
 // 進入結帳頁面初始化
 window.openCheckoutView = function() {
+  hideAllMainViews();
+  const checkoutView = document.getElementById('checkout-view');
+  checkoutView.style.display = 'block';
+
+  document.getElementById('checkout-view-title').innerText = '訂單結帳與配送資料';
+  document.getElementById('checkout-back-btn').setAttribute('onclick', 'showAppView()');
+  document.getElementById('checkout-back-btn').innerText = '⬅ 返回購物';
+  document.getElementById('delivery-inputs-container').style.display = 'block';
+  document.getElementById('btn-submit-order').style.display = 'block';
+  document.getElementById('delivery-readonly-container').style.display = 'none';
+  document.getElementById('payment-report-container').style.display = 'none';
+  document.getElementById('checkout-calc-rows').style.display = 'block';
+  document.getElementById('fee-adjust-warn').style.display = 'none';
+
   const hasItems = Object.values(cartState).some(product =>
     product.isChecked && Object.values(product.specs).some(item => item.qty > 0)
   );
-
-  if (!hasItems) return alert('請至少選擇一項商品且數量大於 0');
-
-  hideAllMainViews();
-  document.getElementById('checkout-view').style.display = 'block';
-
-  // 確保進入全新結帳流程時，欄位全部解鎖
-  toggleCheckoutLock(false);
+  if (!hasItems) {
+    showAppView();
+    return alert('請至少選擇一項商品且數量大於 0');
+  }
 
   currentCheckoutSubtotal = 0;
   for (const pid in cartState) {
@@ -578,40 +589,68 @@ async function processCheckout() {
   }
 }
 
-// ================= 6. 匯款表單送出邏輯 =================
-document.getElementById('submit-remittance-btn')?.addEventListener('click', async (e) => {
-  const btn = e.target;
-  const orderId = btn.dataset.orderId;
-  const bankLast5 = document.getElementById('bank-last-5').value;
-  const taxId = document.getElementById('tax-id').value;
+// ================= 6. 匯款回報模式 =================
+window.openOrderPaymentView = async function(orderId) {
+  hideAllMainViews();
+  const checkoutView = document.getElementById('checkout-view');
+  checkoutView.style.display = 'block';
 
-  if (!bankLast5 || bankLast5.length !== 5) return alert('請填寫正確的帳戶後 5 碼數字');
+  document.getElementById('checkout-view-title').innerText = `訂單匯款回報 (${orderId})`;
+  document.getElementById('checkout-back-btn').setAttribute('onclick', 'loadMyOrders()');
+  document.getElementById('checkout-back-btn').innerText = '⬅ 返回我的訂單';
+  document.getElementById('delivery-inputs-container').style.display = 'none';
+  document.getElementById('btn-submit-order').style.display = 'none';
+  document.getElementById('checkout-calc-rows').style.display = 'none';
+  document.getElementById('fee-adjust-warn').style.display = 'none';
+  document.getElementById('delivery-readonly-container').style.display = 'block';
+  document.getElementById('payment-report-container').style.display = 'block';
+  document.getElementById('readonly-order-id').innerText = orderId;
+  document.getElementById('readonly-delivery-info').innerText = '資料讀取中...';
+  document.getElementById('checkout-final-total').innerText = '...';
 
-  btn.innerText = '處理中...';
-  btn.disabled = true;
-
-  // 執行 UPDATE 操作，將狀態改為「匯款待查」
-  const { error } = await supabase
+  const { data: order, error } = await supabase
     .from('orders')
-    .update({
-      status: '匯款待查',
-      account_last_5: bankLast5,
-      tax_id: taxId
-    })
+    .select('*')
     .eq('order_id', orderId)
-    .eq('user_id', currentUser.id); // 確保只能更新自己的訂單
+    .eq('user_id', currentUser.id)
+    .single();
 
-  btn.innerText = '確認送出匯款資訊';
-  btn.disabled = false;
-
-  if (error) {
-    console.error(error);
-    return alert('匯款資訊送出失敗，請稍後再試。');
+  if (error || !order) {
+    alert('無法載入訂單資料: ' + (error ? error.message : '查無此訂單'));
+    loadMyOrders();
+    return;
   }
 
-  alert('匯款資訊已成功送出，等待管理員核帳。');
-  loadMyOrders(); // 成功後跳轉至我的訂單頁面
-});
+  currentPayingOrderId = orderId;
+  document.getElementById('readonly-delivery-info').innerText = order.admin_note || '標準配送';
+  document.getElementById('checkout-final-total').innerText = order.total_amount;
+  document.getElementById('pay-account-last-5').value = order.account_last_5 || '';
+  document.getElementById('pay-tax-id').value = order.tax_id || '';
+  document.getElementById('btn-submit-payment').onclick = () => submitOrderPaymentReport(orderId);
+};
+
+window.submitOrderPaymentReport = async function(orderId) {
+  const last5 = document.getElementById('pay-account-last-5').value.trim();
+  const taxId = document.getElementById('pay-tax-id').value.trim();
+  if (!last5 || !/^\d{5}$/.test(last5)) return alert('請輸入正確的匯款帳號後 5 碼數字');
+
+  const payButton = document.getElementById('btn-submit-payment');
+  payButton.disabled = true;
+  payButton.innerText = '資料送出中...';
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: '匯款待查', account_last_5: last5, tax_id: taxId || null })
+    .eq('order_id', orderId)
+    .eq('user_id', currentUser.id);
+
+  payButton.disabled = false;
+  payButton.innerText = '確認送出匯款核帳資料';
+  if (error) return alert('送出失敗: ' + error.message);
+
+  alert(`訂單 ${orderId} 匯款資料已送出！待管理員審核確認後即會開始安排出貨。`);
+  loadMyOrders();
+};
 
 // ================= 7. 我的訂單與視圖切換邏輯 =================
 let allMyOrders = []; // 暫存歷史訂單
@@ -713,6 +752,17 @@ window.renderOrdersList = function(statusCategory) {
 
   filteredOrders.forEach(order => {
     const isPayable = order.is_payable;
+
+    let actionBtnHtml = '';
+    if (order.status === '未付款') {
+      if (order.is_payable) {
+        actionBtnHtml = `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="openOrderPaymentView('${order.order_id}')">前往匯款</button>`;
+      } else {
+        actionBtnHtml = '<span style="display: block; margin-top: 10px; color:#d9534f; font-size:0.9em;">待管理員核定運費後開放匯款</span>';
+      }
+    } else if (order.status === '匯款待查') {
+      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.9em;">匯款審核中 (後五碼: ${order.account_last_5 || '未提供'})</span>`;
+    }
     
     // 生成商品明細 HTML
     const itemsHtml = order.order_items.map(item => `
@@ -757,24 +807,10 @@ window.renderOrdersList = function(statusCategory) {
         總計金額 (含稅): $${order.total_amount}
       </div>
       ${warningHtml}
-      ${isPayable && order.status === '未付款' ? `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="resumeCheckout('${order.order_id}', ${order.total_amount})">前往匯款</button>` : ''}
+      ${actionBtnHtml}
     `;
     container.appendChild(card);
   });
-};
-
-// 恢復中斷的匯款流程
-window.resumeCheckout = function(orderId, totalAmount) {
-  document.getElementById('orders-view').style.display = 'none';
-  document.getElementById('checkout-view').style.display = 'block';
-  document.getElementById('remittance-form').style.display = 'flex';
-  document.getElementById('low-amount-warning').style.display = 'none';
-  
-  document.getElementById('checkout-summary').innerHTML = `
-    <p>訂單編號: <strong>${orderId}</strong></p>
-    <h3 style="color: var(--primary-orange);">應付總額: $${totalAmount}</h3>
-  `;
-  document.getElementById('submit-remittance-btn').dataset.orderId = orderId;
 };
 
 // ================= 8. 管理員後台邏輯 =================
@@ -1515,73 +1551,3 @@ window.addEventListener('scroll', () => {
     }
   }
 }, { passive: true });
-
-// 切換結帳頁面的編輯 / 唯讀(匯款)模式
-window.toggleCheckoutLock = function(isLocked) {
-  // 1. 隱藏或顯示「確認並送出訂單」按鈕
-  const submitBtn = document.getElementById('btn-submit-order');
-  if (submitBtn) {
-    submitBtn.style.display = isLocked ? 'none' : 'block';
-  }
-
-  // 2. 鎖定固定的收件人與物流選項欄位
-  const targetIds = [
-    'recipient-name', 
-    'recipient-phone', 
-    'shipping-method-select'
-  ];
-  
-  targetIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.disabled = isLocked;
-      el.style.backgroundColor = isLocked ? '#e9ecef' : ''; // 加上灰色背景提示不可編輯
-    }
-  });
-
-  // 3. 鎖定材積選擇 Radio 按鈕
-  const tierRadios = document.querySelectorAll('input[name="shipping-tier"]');
-  tierRadios.forEach(radio => radio.disabled = isLocked);
-
-  // 4. 鎖定動態生成的欄位 (門市名稱、郵局、詳細地址)
-  const dynamicContainer = document.getElementById('dynamic-shipping-fields');
-  if (dynamicContainer) {
-    const dynamicInputs = dynamicContainer.querySelectorAll('input');
-    dynamicInputs.forEach(el => {
-      el.disabled = isLocked;
-      el.style.backgroundColor = isLocked ? '#e9ecef' : '';
-    });
-  }
-};
-
-window.openPaymentModal = function(orderId, amount) {
-  currentPaymentOrderId = orderId;
-
-  // 1. 確保顯示結帳視圖並更新對應訂單金額
-  hideAllMainViews();
-  const checkoutView = document.getElementById('checkout-view');
-  if (checkoutView) checkoutView.style.display = 'block';
-
-  const checkoutSubtotal = document.getElementById('checkout-subtotal');
-  const checkoutTotal = document.getElementById('checkout-final-total');
-  if (checkoutSubtotal) checkoutSubtotal.innerText = amount;
-  if (checkoutTotal) checkoutTotal.innerText = amount;
-
-  // 2. 關鍵：鎖定上方所有配送資訊欄位，並隱藏「確認並送出訂單」按鈕
-  toggleCheckoutLock(true);
-
-  // 3. 填入匯款彈窗資訊並開啟
-  const payOrderId = document.getElementById('pay-order-id');
-  const payOrderAmount = document.getElementById('pay-order-amount');
-  const paymentModal = document.getElementById('payment-modal');
-
-  if (payOrderId) payOrderId.innerText = orderId;
-  if (payOrderAmount) payOrderAmount.innerText = amount;
-  if (paymentModal) paymentModal.style.display = 'flex';
-};
-
-//當使用者在匯款彈窗點擊 x 關閉時，若回到的是「我的訂單」視圖而非結帳畫面，確保 window.closePaymentModal 同步收起彈窗
-window.closePaymentModal = function() {
-  const modal = document.getElementById('payment-modal');
-  if (modal) modal.style.display = 'none';
-};
