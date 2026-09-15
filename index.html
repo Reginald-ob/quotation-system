@@ -641,6 +641,22 @@
       </section>
     </div>
   </div>
+  <!-- 特定分類密碼驗證彈窗 -->
+  <div id="category-lock-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: #fff; padding: 24px; border-radius: 10px; width: 90%; max-width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); position: relative; text-align: center;">
+      <span onclick="closeCategoryLockModal()" style="position: absolute; top: 12px; right: 16px; font-size: 1.5em; cursor: pointer; color: #888;">&times;</span>
+      <h3 style="margin-top: 0; margin-bottom: 10px; color: #333; font-size: 1.2em;">🔒 專屬分類授權驗證</h3>
+      <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">此分類商品為授權限定，請輸入訪問密碼：</p>
+      
+      <input type="password" id="category-lock-input" placeholder="請輸入存取密碼" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; box-sizing: border-box; margin-bottom: 8px; outline: none; text-align: center;" onkeydown="if(event.key==='Enter') verifyCategoryPassword()">
+      <p id="category-lock-error" style="color: #dc3545; font-size: 0.85em; margin: 0 0 12px 0; display: none;">密碼錯誤，請重新輸入</p>
+      
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn-orange" onclick="verifyCategoryPassword()" style="flex: 1; padding: 10px;">確認解鎖</button>
+        <button class="btn-orange" onclick="closeCategoryLockModal()" style="flex: 1; padding: 10px; background: #6c757d;">取消</button>
+      </div>
+    </div>
+  </div>
   <script type="module" src="main.js"></script>
 </body>
 </html>
