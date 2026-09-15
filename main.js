@@ -276,7 +276,7 @@ function calculateCartTotal() {
 }
 
 // ================= 5. 結帳與寫入資料庫邏輯 (稅額計算修正版) =================
-document.getElementById('checkout-btn').addEventListener('click', openCheckoutView);
+document.getElementById('checkout-btn').addEventListener('click', () => window.openCheckoutView());
 
 // ================= 國內物流選項設定檔 =================
 const LOGISTICS_CONFIG = {
