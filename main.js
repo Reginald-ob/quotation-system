@@ -49,7 +49,7 @@ async function initAppView(user) {
     adminBtn.style.display = adminEmails.includes(user.email) ? 'inline-block' : 'none';
   }
 
-  window.loadCategory('日用品'); 
+  window.loadCategory('純鈦製品'); 
 }
 
 // 處理用戶資料建檔與讀取 (防重複詢問 + 錯誤可視化)
