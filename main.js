@@ -1324,3 +1324,203 @@ window.addEventListener('scroll', () => {
     }
   }
 }, { passive: true });
+
+// ================= 國內物流選項設定檔 =================
+const LOGISTICS_CONFIG = {
+  small: [
+    { id: '711', name: '7-11 超商取貨 (固定運費 $38)', fee: 38, type: 'cvs', notice: '固定運費 $38' },
+    { id: 'family', name: '全家 超商取貨 (固定運費 $35)', fee: 35, type: 'cvs', notice: '固定運費 $35' },
+    { id: 'post_station', name: '中華郵政 - 存局候領 (後台改價)', fee: 0, type: 'post_station', notice: '運費依包裹適用之郵政收費方案，由後台管理員核定改價' },
+    { id: 'post_home', name: '中華郵政 - 宅配到府 (後台改價)', fee: 0, type: 'home_delivery', notice: '運費依包裹適用之郵政收費方案，由後台管理員核定改價' },
+    { id: 'hsinchu_home', name: '新竹物流 - 宅配到府 (後台改價)', fee: 0, type: 'home_delivery', notice: '運費依包裹適用之新竹物流收費方案，由後台管理員核定改價' }
+  ],
+  large: [
+    { id: 'large_home', name: '大型貨物宅配 (回頭車/專車另行報價)', fee: 0, type: 'home_delivery', notice: '物流公司按貨物類型及配送地區視實際情況選擇調整，運費另外報價並由後台改價' }
+  ]
+};
+
+let currentCheckoutSubtotal = 0;
+let currentShippingFee = 38;
+
+// 進入結帳頁面初始化
+window.openCheckoutView = function() {
+  hideAllMainViews();
+  document.getElementById('checkout-view').style.display = 'block';
+
+  // 1. 計算購物車商品金額
+  currentCheckoutSubtotal = 0;
+  for (const pid in cartState) {
+    if (cartState[pid].isChecked) {
+      for (const sk in cartState[pid].specs) {
+        currentCheckoutSubtotal += cartState[pid].specs[sk].qty * cartState[pid].specs[sk].price;
+      }
+    }
+  }
+
+  document.getElementById('checkout-subtotal').innerText = currentCheckoutSubtotal;
+  
+  // 2. 預設為小材積
+  const smallRadio = document.querySelector('input[name="shipping-tier"][value="small"]');
+  if (smallRadio) smallRadio.checked = true;
+
+  handleShippingTierChange();
+};
+
+// 第一層切換：小材積 / 大材積
+window.handleShippingTierChange = function() {
+  const tier = document.querySelector('input[name="shipping-tier"]:checked').value;
+  const select = document.getElementById('shipping-method-select');
+  select.innerHTML = '';
+
+  const options = LOGISTICS_CONFIG[tier];
+  options.forEach(opt => {
+    const el = document.createElement('option');
+    el.value = opt.id;
+    el.innerText = opt.name;
+    select.appendChild(el);
+  });
+
+  handleShippingMethodChange();
+};
+
+// 第二層切換：渲染動態欄位與計算費用
+window.handleShippingMethodChange = function() {
+  const tier = document.querySelector('input[name="shipping-tier"]:checked').value;
+  const selectedId = document.getElementById('shipping-method-select').value;
+  const methodConfig = LOGISTICS_CONFIG[tier].find(item => item.id === selectedId);
+  const container = document.getElementById('dynamic-shipping-fields');
+  const noticeEl = document.getElementById('shipping-notice-text');
+  const feeDisplay = document.getElementById('checkout-shipping-fee-display');
+  const finalTotal = document.getElementById('checkout-final-total');
+  const warnEl = document.getElementById('fee-adjust-warn');
+
+  if (!methodConfig) return;
+
+  noticeEl.innerText = `💡 ${methodConfig.notice}`;
+  currentShippingFee = methodConfig.fee;
+
+  // 更新金額顯示
+  if (methodConfig.fee > 0) {
+    feeDisplay.innerText = `$${methodConfig.fee}`;
+    warnEl.style.display = 'none';
+  } else {
+    feeDisplay.innerText = '待後台核定';
+    warnEl.style.display = 'block';
+  }
+  finalTotal.innerText = currentCheckoutSubtotal + currentShippingFee;
+
+  // 根據物流類型動態置換表單
+  if (methodConfig.type === 'cvs') {
+    // 超商門市
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-weight: bold; font-size: 0.88em; color: #333;">取件超商門市名稱與店號 *</label>
+        <input type="text" id="delivery-store" required placeholder="例：鑫泰門市 (123456)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+    `;
+  } else if (methodConfig.type === 'post_station') {
+    // 郵局存局候領
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-weight: bold; font-size: 0.88em; color: #333;">領取郵局分局名稱 *</label>
+        <input type="text" id="delivery-station" required placeholder="例：台北大安郵局 (存局候領)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+    `;
+  } else if (methodConfig.type === 'home_delivery') {
+    // 宅配詳細地址 (含郵遞區號)
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-weight: bold; font-size: 0.88em; color: #333;">郵遞區號 (3碼或5碼) *</label>
+        <input type="text" id="delivery-zip" required placeholder="例：106" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 120px;">
+        <label style="font-weight: bold; font-size: 0.88em; color: #333; margin-top: 4px;">詳細配送地址 *</label>
+        <input type="text" id="delivery-address" required placeholder="例：台北市大安區信義路四段xxx號x樓" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+    `;
+  }
+};
+
+// 訂單送出並存入 Supabase
+window.submitOrder = async function() {
+  const submitBtn = document.getElementById('btn-submit-order');
+  const recipientName = document.getElementById('recipient-name').value.trim();
+  const recipientPhone = document.getElementById('recipient-phone').value.trim();
+  const tier = document.querySelector('input[name="shipping-tier"]:checked').value;
+  const selectedId = document.getElementById('shipping-method-select').value;
+  const methodConfig = LOGISTICS_CONFIG[tier].find(item => item.id === selectedId);
+
+  // 驗證動態必填資訊
+  let deliveryDetailText = '';
+  if (methodConfig.type === 'cvs') {
+    const store = document.getElementById('delivery-store').value.trim();
+    if (!store) return alert('請填寫超商門市名稱與店號');
+    deliveryDetailText = `門市: ${store}`;
+  } else if (methodConfig.type === 'post_station') {
+    const station = document.getElementById('delivery-station').value.trim();
+    if (!station) return alert('請填寫存局候領之郵局分局名稱');
+    deliveryDetailText = `存局候領: ${station}`;
+  } else if (methodConfig.type === 'home_delivery') {
+    const zip = document.getElementById('delivery-zip').value.trim();
+    const addr = document.getElementById('delivery-address').value.trim();
+    if (!zip || !addr) return alert('請填寫完整的郵遞區號與詳細配送地址');
+    deliveryDetailText = `(${zip}) ${addr}`;
+  }
+
+  // 整理訂購項目
+  const orderItems = [];
+  for (const pid in cartState) {
+    if (cartState[pid].isChecked) {
+      const specsArr = [];
+      for (const sk in cartState[pid].specs) {
+        const item = cartState[pid].specs[sk];
+        if (item.qty > 0) {
+          specsArr.push({ specName: sk, price: item.price, qty: item.qty });
+        }
+      }
+      if (specsArr.length > 0) {
+        orderItems.push({
+          productId: pid,
+          name: cartState[pid].name,
+          specs: specsArr
+        });
+      }
+    }
+  }
+
+  if (orderItems.length === 0) return alert('購物車內無商品');
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = '訂單處理中...';
+
+  const orderId = 'ORD-' + Date.now().toString().slice(-6);
+  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+
+  // 組合管理員可見之配送備註
+  const deliverySummary = `[${tier === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
+
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([{
+      order_id: orderId,
+      user_id: currentUser.id,
+      user_name: recipientName,
+      total_amount: totalAmount,
+      status: '未付款',
+      is_payable: methodConfig.fee > 0, // 固定運費直接解鎖付款；待改價訂單則由管理員核定後解鎖
+      admin_note: deliverySummary,
+      order_items: orderItems
+    }]);
+
+  if (error) {
+    alert('建立訂單失敗: ' + error.message);
+    submitBtn.disabled = false;
+    submitBtn.innerText = '確認並送出訂單';
+    return;
+  }
+
+  alert(`訂單建立成功！訂單編號: ${orderId}\n${methodConfig.fee === 0 ? '此訂單運費待管理員核定，請至「我的訂單」查看狀態。' : '請至「我的訂單」完成匯款並回報後五碼。'}`);
+  
+  // 清空購物車狀態並導回訂單列表
+  cartState = {};
+  showAppView();
+  loadMyOrders();
+};

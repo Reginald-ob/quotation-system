@@ -106,9 +106,74 @@
   </div>
 
   <!-- 結帳與匯款視圖 (預設隱藏) -->
-  <div id="checkout-view" style="display: none; padding: 2rem; max-width: 600px; margin: 50px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-    <h2>訂單已成立</h2>
-  <div id="checkout-summary" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+  <!-- 結帳頁面 -->
+  <div id="checkout-view" style="display: none; padding: 20px; max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+      <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
+      <h2 style="margin: 0; font-size: 1.3em;">訂單結帳與配送資料</h2>
+    </div>
+
+    <form id="checkout-form" onsubmit="event.preventDefault(); submitOrder();">
+      <!-- 基礎收件人資訊 -->
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">收件人姓名 *</label>
+        <input type="text" id="recipient-name" required placeholder="請填寫真實姓名" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">收件人聯絡電話 *</label>
+        <input type="tel" id="recipient-phone" required placeholder="請輸入手機號碼 (09xxxxxxxx)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+      </div>
+
+      <!-- 第一層：材積選擇 -->
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">貨物材積類型 *</label>
+        <div style="display: flex; gap: 15px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="shipping-tier" value="small" checked onchange="handleShippingTierChange()">
+            <span>小材積 (默認)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="shipping-tier" value="large" onchange="handleShippingTierChange()">
+            <span>大材積 / 超大件</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 第二層：物流方式選擇 (JS 動態切換選項) -->
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">國內配送方式 *</label>
+        <select id="shipping-method-select" onchange="handleShippingMethodChange()" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.95em;">
+          <!-- 由 JS 初始化渲染 -->
+        </select>
+        <p id="shipping-notice-text" style="color: #6c757d; font-size: 0.85em; margin: 6px 0 0 0;"></p>
+      </div>
+
+      <!-- 第三層：動態輸入欄位 (依物流方式顯示門市或地址) -->
+      <div id="dynamic-shipping-fields" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+        <!-- JS 動態插入所需欄位 -->
+      </div>
+
+      <!-- 費用明細 -->
+      <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 20px; font-size: 0.95em;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>商品總金額:</span>
+          <span>$<strong id="checkout-subtotal">0</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>國內運費:</span>
+          <span id="checkout-shipping-fee-display" style="color: #28a745; font-weight: bold;">$38</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 1.15em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;">
+          <span>應付總額:</span>
+          <span style="color: var(--primary-orange);">$<span id="checkout-final-total">0</span></span>
+        </div>
+        <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
+      </div>
+
+      <button type="submit" id="btn-submit-order" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認並送出訂單</button>
+    </form>
+  </div>
   <!-- 動態插入訂單摘要 -->
   </div>
     
