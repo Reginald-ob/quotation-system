@@ -767,11 +767,12 @@ window.renderOrdersList = function(statusCategory) {
     // 生成商品明細 HTML
     const itemsHtml = order.order_items.map(item => `
       <div style="font-size: 0.9em; border-bottom: 1px dashed #ccc; padding: 5px 0;">
+        <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${item.productId}</span>
         <strong>${item.name}</strong><br>
-        ${item.specs.map(s => `<span style="display:inline-block; margin-right:10px;">- ${s.specName} (x${s.qty}) : $${s.qty * s.price}</span>`).join('')}
+        ${item.specs.map(s => `<span style="display:inline-block; margin-right:10px;">- ${s.specName} (x${s.qty}) :$${s.qty * s.price}</span>`).join('')}
       </div>
     `).join('');
-
+    
     // --- 前端邏輯：判定備註與改價狀態 ---
     const isLowAmount = !isPayable && order.status === '未付款';
     // 若 admin_note 存在 (包含空字串 "")，且不是系統預設警告，代表管理員已操作改價/備註
