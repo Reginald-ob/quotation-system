@@ -629,26 +629,89 @@ window.openOrderPaymentView = async function(orderId) {
   document.getElementById('btn-submit-payment').onclick = () => submitOrderPaymentReport(orderId);
 };
 
-window.submitOrderPaymentReport = async function(orderId) {
-  const last5 = document.getElementById('pay-account-last-5').value.trim();
-  const taxId = document.getElementById('pay-tax-id').value.trim();
-  if (!last5 || !/^\d{5}$/.test(last5)) return alert('請輸入正確的匯款帳號後 5 碼數字');
+window.submitOrder = async function() {
+  const submitButton = document.getElementById('btn-submit-order');
+  const recipientName = document.getElementById('recipient-name').value.trim();
+  const recipientPhone = document.getElementById('recipient-phone').value.trim();
+  const tierInput = document.querySelector('input[name="shipping-tier"]:checked');
+  const methodSelect = document.getElementById('shipping-method-select');
+  const methodConfig = tierInput && methodSelect
+    ? LOGISTICS_CONFIG[tierInput.value].find(item => item.id === methodSelect.value)
+    : null;
 
-  const payButton = document.getElementById('btn-submit-payment');
-  payButton.disabled = true;
-  payButton.innerText = '資料送出中...';
+  if (!recipientName || !recipientPhone || !methodConfig) return alert('請完整填寫收件人與物流資料');
 
-  const { error } = await supabase
-    .from('orders')
-    .update({ status: '匯款待查', account_last_5: last5, tax_id: taxId || null })
-    .eq('order_id', orderId)
-    .eq('user_id', currentUser.id);
+  let deliveryDetailText = '';
+  if (methodConfig.type === 'cvs') {
+    const store = document.getElementById('delivery-store')?.value.trim();
+    if (!store) return alert('請填寫超商門市名稱與店號');
+    deliveryDetailText = `門市: ${store}`;
+  } else if (methodConfig.type === 'post_station') {
+    const station = document.getElementById('delivery-station')?.value.trim();
+    if (!station) return alert('請填寫存局候領之郵局分局名稱');
+    deliveryDetailText = `存局候領: ${station}`;
+  } else {
+    const zip = document.getElementById('delivery-zip')?.value.trim();
+    const address = document.getElementById('delivery-address')?.value.trim();
+    if (!zip || !address) return alert('請填寫完整的郵遞區號與詳細配送地址');
+    deliveryDetailText = `(${zip}) ${address}`;
+  }
 
-  payButton.disabled = false;
-  payButton.innerText = '確認送出匯款核帳資料';
-  if (error) return alert('送出失敗: ' + error.message);
+  const orderItems = [];
+  for (const pid in cartState) {
+    if (!cartState[pid].isChecked) continue;
 
-  alert(`訂單 ${orderId} 匯款資料已送出！待管理員審核確認後即會開始安排出貨。`);
+    // 加入 skuId 並且防呆
+    const specs = Object.values(cartState[pid].specs)
+      .filter(item => item.qty > 0)
+      .map(item => ({ 
+        specName: item.specName, 
+        price: item.price, 
+        qty: item.qty, 
+        skuId: item.skuId 
+      }));
+
+    if (specs.length > 0) {
+      orderItems.push({ product_id: pid, name: cartState[pid].name, specs });
+    }
+  }
+
+  if (orderItems.length === 0) return alert('購物車內無商品');
+
+  submitButton.disabled = true;
+  submitButton.innerText = '訂單處理中...';
+
+  const orderId = 'ORD-' + Date.now().toString().slice(-6);
+  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+  const deliverySummary = `[${tierInput.value === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
+
+  const { error } = await supabase.from('orders').insert([{
+    order_id: orderId,
+    user_id: currentUser.id,
+    user_no: currentProfile ? currentProfile.user_no : null,
+    user_name: recipientName,
+    total_amount: totalAmount,
+    status: '未付款',
+    order_type: 'normal',
+    is_payable: methodConfig.fee > 0,
+    admin_note: deliverySummary,
+    order_items: orderItems
+  }]);
+
+  if (error) {
+    console.error(error);
+    alert('建立訂單失敗: ' + error.message);
+    submitButton.disabled = false;
+    submitButton.innerText = '確認並送出訂單';
+    return;
+  }
+
+  alert(`訂單建立成功！訂單編號: ${orderId}\n${methodConfig.fee === 0 ? '此訂單運費待管理員核定，請至「我的訂單」查看狀態。' : '請至「我的訂單」完成匯款並回報後五碼。'}`);
+  cartState = {};
+  calculateCartTotal();
+  submitButton.disabled = false;
+  submitButton.innerText = '確認並送出訂單';
+  showAppView();
   loadMyOrders();
 };
 
@@ -740,7 +803,6 @@ window.renderOrdersList = function(statusCategory) {
   const container = document.getElementById('orders-list-container');
   container.innerHTML = '';
 
-  // 過濾訂單 (將「匯款待查」歸類在「進行中」分頁顯示)
   const filteredOrders = allMyOrders.filter(order => {
     if (statusCategory === '進行中') return order.status === '進行中' || order.status === '匯款待查';
     return order.status === statusCategory;
@@ -752,7 +814,6 @@ window.renderOrdersList = function(statusCategory) {
 
   filteredOrders.forEach(order => {
     const isPayable = order.is_payable;
-
     let actionBtnHtml = '';
     if (order.status === '未付款') {
       if (order.is_payable) {
@@ -764,32 +825,29 @@ window.renderOrdersList = function(statusCategory) {
       actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.9em;">匯款審核中 (後五碼: ${order.account_last_5 || '未提供'})</span>`;
     }
     
-    // 生成商品明細 HTML (我的訂單)
-    const itemsHtml = order.order_items.map(item => `
+    // 加入防呆：確保 order_items 和 specs 存在，相容舊訂單
+    const orderItemsSafe = order.order_items || [];
+    const itemsHtml = orderItemsSafe.map(item => `
       <div style="font-size: 0.9em; border-bottom: 1px dashed #ccc; padding: 5px 0;">
         <strong>${item.name}</strong><br>
-        ${item.specs.map(s => `
+        ${(item.specs || []).map(s => `
           <div style="margin-top: 4px; padding-left: 8px;">
-            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || '-'}</span>
+            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || item.productId || '-'}</span>
             <span style="display:inline-block; margin-right:10px; color: #555;">- ${s.specName} (x${s.qty}) :$${s.qty * s.price}</span>
           </div>
         `).join('')}
       </div>
     `).join('');
-
-    // --- 前端邏輯：判定備註與改價狀態 ---
+    
     const isLowAmount = !isPayable && order.status === '未付款';
-    // 若 admin_note 存在 (包含空字串 "")，且不是系統預設警告，代表管理員已操作改價/備註
     const isAdjusted = order.admin_note !== null && 
                        order.admin_note !== undefined && 
                        order.admin_note !== '該訂單未達預付貨款門檻，入庫後連同運費合併結帳';
     
     let warningHtml = '';
     if (isLowAmount) {
-      // 系統預設：未達門檻黃字警告
       warningHtml = `<div style="color: #856404; background: #fff3cd; padding: 8px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">${order.admin_note}</div>`;
     } else if (isAdjusted) {
-      // 管理員改價：紅字警告與備註顯示
       warningHtml = `
         <div style="color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin-top: 10px; font-size: 0.9em; border-radius: 4px;">
           <strong style="display: block; margin-bottom: 5px;">⚠️ 訂單已改價，匯款前請務必確認金額無誤！</strong>
@@ -797,11 +855,9 @@ window.renderOrdersList = function(statusCategory) {
         </div>
       `;
     }
-    // ------------------------------------
 
     const card = document.createElement('div');
     card.style = 'border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fafafa;';
-    
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
         <span style="font-weight: bold; color: var(--primary-orange);">訂單編號: ${order.order_id}</span>
@@ -902,7 +958,6 @@ window.toggleAdminOrderDetails = async function(orderId) {
   const arrow = document.getElementById(`arrow-${orderId}`);
   const text = document.getElementById(`text-${orderId}`);
 
-  // 若目前已展開，則執行收合
   if (container.style.display === 'block') {
     container.style.display = 'none';
     arrow.style.transform = 'rotate(0deg)';
@@ -910,12 +965,10 @@ window.toggleAdminOrderDetails = async function(orderId) {
     return;
   }
 
-  // 展開容器並翻轉箭頭
   container.style.display = 'block';
   arrow.style.transform = 'rotate(180deg)';
   text.innerText = '收合明細';
 
-  // 檢查是否已讀取過，避免重複請求
   if (container.dataset.loaded !== 'true') {
     container.innerHTML = '<span style="color: #666; font-size: 0.85em;">讀取明細中...</span>';
 
@@ -930,13 +983,13 @@ window.toggleAdminOrderDetails = async function(orderId) {
       return;
     }
 
-    // 渲染商品明細
+    // 加入防呆：確保 specs 存在，相容舊訂單
     const itemsHtml = data.order_items.map(item => `
       <div style="font-size: 0.9em; border-bottom: 1px dashed #ddd; padding: 6px 0;">
         <strong style="color: #333;">${item.name}</strong><br>
-        ${item.specs.map(s => `
+        ${(item.specs || []).map(s => `
           <div style="margin-top: 4px; padding-left: 8px;">
-            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || '-'}</span>
+            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || item.productId || '-'}</span>
             <span style="display: inline-block; margin-right: 12px; color: #555;">
               - ${s.specName} (x${s.qty}) :$${s.qty * s.price}
             </span>
@@ -944,6 +997,11 @@ window.toggleAdminOrderDetails = async function(orderId) {
         `).join('')}
       </div>
     `).join('');
+
+    container.innerHTML = itemsHtml || '<span style="color: #888;">無明細資料</span>';
+    container.dataset.loaded = 'true';
+  }
+};
 
 // 3. 修復後的改價與狀態更新邏輯
 window.adminUpdateOrder = async function(orderId) {
@@ -1122,7 +1180,7 @@ window.addToCartFromModal = function() {
   if (!cartState[prodId]) {
     cartState[prodId] = {
       name: currentModalProduct.name,
-      weight: currentModalProduct.weight || '', // 保存該產品之毛重字串
+      weight: currentModalProduct.weight || '',
       isChecked: true,
       specs: {}
     };
