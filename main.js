@@ -434,7 +434,7 @@ window.submitOrder = async function() {
 
     const specs = Object.values(cartState[pid].specs)
       .filter(item => item.qty > 0)
-      .map(item => ({ specName: item.specName, price: item.price, qty: item.qty }));
+      .map(item => ({ specName: item.specName, price: item.price, qty: item.qty, skuId: item.skuId }));
 
     if (specs.length > 0) {
       orderItems.push({ product_id: pid, name: cartState[pid].name, specs });
@@ -764,15 +764,19 @@ window.renderOrdersList = function(statusCategory) {
       actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.9em;">匯款審核中 (後五碼: ${order.account_last_5 || '未提供'})</span>`;
     }
     
-    // 生成商品明細 HTML
+    // 生成商品明細 HTML (我的訂單)
     const itemsHtml = order.order_items.map(item => `
       <div style="font-size: 0.9em; border-bottom: 1px dashed #ccc; padding: 5px 0;">
-        <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${item.productId}</span>
         <strong>${item.name}</strong><br>
-        ${item.specs.map(s => `<span style="display:inline-block; margin-right:10px;">- ${s.specName} (x${s.qty}) :$${s.qty * s.price}</span>`).join('')}
+        ${item.specs.map(s => `
+          <div style="margin-top: 4px; padding-left: 8px;">
+            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || '-'}</span>
+            <span style="display:inline-block; margin-right:10px; color: #555;">- ${s.specName} (x${s.qty}) :$${s.qty * s.price}</span>
+          </div>
+        `).join('')}
       </div>
     `).join('');
-    
+
     // --- 前端邏輯：判定備註與改價狀態 ---
     const isLowAmount = !isPayable && order.status === '未付款';
     // 若 admin_note 存在 (包含空字串 "")，且不是系統預設警告，代表管理員已操作改價/備註
@@ -931,17 +935,15 @@ window.toggleAdminOrderDetails = async function(orderId) {
       <div style="font-size: 0.9em; border-bottom: 1px dashed #ddd; padding: 6px 0;">
         <strong style="color: #333;">${item.name}</strong><br>
         ${item.specs.map(s => `
-          <span style="display: inline-block; margin-right: 12px; color: #555;">
-            - ${s.specName} (x${s.qty}) : $${s.qty * s.price}
-          </span>
+          <div style="margin-top: 4px; padding-left: 8px;">
+            <span style="color: #007bff; background: #e7f1ff; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 6px;">ID: ${s.skuId || item.product_id || '-'}</span>
+            <span style="display: inline-block; margin-right: 12px; color: #555;">
+              - ${s.specName} (x${s.qty}) :$${s.qty * s.price}
+            </span>
+          </div>
         `).join('')}
       </div>
     `).join('');
-
-    container.innerHTML = itemsHtml || '<span style="color: #888;">無明細資料</span>';
-    container.dataset.loaded = 'true';
-  }
-};
 
 // 3. 修復後的改價與狀態更新邏輯
 window.adminUpdateOrder = async function(orderId) {
@@ -1130,7 +1132,8 @@ window.addToCartFromModal = function() {
     cartState[prodId].specs[specKey] = {
       specName: specKey,
       price: variant.price,
-      qty: 0
+      qty: 0,
+      skuId: variant.skuId
     };
   }
 
