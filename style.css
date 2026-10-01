@@ -448,3 +448,15 @@ body {
   border-color: #ced4da;
   color: #212529;
 }
+
+/* ================= 修正產品彈窗圖片變形與裁切問題 ================= */
+#modal-img {
+  width: 100% !important;
+  max-height: 400px !important;    /* 限制最大高度，避免在電腦端過大 */
+  aspect-ratio: 1 / 1 !important;  /* 預留 1:1 正方形的展示空間 */
+  object-fit: contain !important;  /* 關鍵：完整顯示原圖，不裁切、不拉伸 */
+  background: #f8f9fa !important;  /* 圖片若非正方形，留白處填入柔和淺灰底色 */
+  border-radius: 8px !important;
+  margin: 0 auto 15px auto !important;
+  display: block !important;
+}
