@@ -636,75 +636,82 @@
 
   <!-- 1. 小材積標準 -->
   <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-    <h4 style="margin-top: 0; color: #0056b3; font-size: 1.1em;">📦 小材積標準 <span style="font-size: 0.85em; color: #dc3545; background: #ffeeba; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">備註：可寄離島</span></h4>
+    <h4 style="margin-top: 0; color: #0056b3; font-size: 1.1em;">📦 小材積標準 <span style="font-size: 0.85em; color: #dc3545; background: #ffeeba; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">可寄離島</span></h4>
     
     <div style="margin-bottom: 15px;">
-      <strong style="color: #333; font-size: 1.05em;">🏪 超商取貨 (CVS)</strong>
+      <strong style="color: #333; font-size: 1.05em;">🏪 超商店取</strong>
       <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.6; color: #495057;">
         <li><strong>7-11 (賣貨便)：</strong>運費 <span style="color: #ee4d2d; font-weight: bold;">$38</span> ；<strong style="color: #28a745;">滿 $299 台灣段物流免運</strong></li>
         <li><strong>全家 (好賣+)：</strong>運費 <span style="color: #ee4d2d; font-weight: bold;">$35</span> ；<strong style="color: #28a745;">滿 $296 台灣段物流免運</strong></li>
       </ul>
     </div>
     <div>
-      <strong style="color: #333; font-size: 1.05em;">🏣 中華郵政 (國內包裹 - 普通資費)</strong>
-      <p style="font-size: 0.9em; color: #6c757d; margin: 4px 0 8px 0;">*一.普通資費（客戶到郵局窗口交寄以重量計算）單位：新台幣(元)</p>
+      <strong style="color: #333; font-size: 1.05em;">🏣 中華郵政 (國內普通資費包裹 - 宅配 / i郵箱取件 / 存局候領)</strong>
+      <p style="font-size: 0.9em; color: #6c757d; margin: 4px 0 8px 0;">*存局候領免費期間為15天，自第 16 日起，國內包裹每日收取 6 元 逾期保管費</p>
       
-      <!-- 表格外層包覆 overflow-x 確保手機版可左右滑動防跑版 -->
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 0.9em; text-align: center; background: #fff;">
+      <div style="overflow-x: auto; margin-top: 8px; border-radius: 4px; border: 1px solid #dee2e6;">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 0.88em; text-align: center; background: #fff;">
           <thead>
             <tr style="background: #e9ecef;">
-              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">重量</th>
-              <th style="padding: 8px; border: 1px solid #dee2e6;">臺灣本島<br>同縣市內互寄</th>
-              <th style="padding: 8px; border: 1px solid #dee2e6;">臺灣本島<br>不同縣市互寄</th>
-              <th style="padding: 8px; border: 1px solid #dee2e6;">臺灣本島、<br>外島地區互寄</th>
-              <th style="padding: 8px; border: 1px solid #dee2e6;">外島地區<br>間互寄</th>
+              <th rowspan="2" style="padding: 8px; border: 1px solid #dee2e6; vertical-align: middle; width: 22%;">重量級距</th>
+              <th colspan="3" style="padding: 8px; border: 1px solid #dee2e6; color: #0056b3;">宅配</th>
+              <th colspan="3" style="padding: 8px; border: 1px solid #dee2e6; color: #28a745;">i郵箱取件 / 自郵領件</th>
+            </tr>
+            <tr style="background: #f8f9fa;">
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">台灣本島<br>同縣市內</th>
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">台灣本島<br>不同縣市</th>
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">本島與外島及<br>外島間</th>
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">台灣本島<br>同縣市內</th>
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">台灣本島<br>不同縣市</th>
+              <th style="padding: 6px; border: 1px solid #dee2e6; font-weight: 500; font-size: 0.9em;">本島與外島及<br>外島間</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">不逾5公斤</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">70</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">80</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">100</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">100</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">不逾 5 公斤</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$70</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$80</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$100</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$48</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$58</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$78</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾5公斤不逾10公斤</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">90</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">100</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">125</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">125</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾 5 公斤，不逾 10 公斤</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$90</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$100</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$125</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$68</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$78</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$103</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾10公斤不逾15公斤</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">110</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">120</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">150</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">150</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾 10 公斤，不逾 15 公斤</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$110</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$120</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$150</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$88</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$98</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$128</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾15公斤不逾20公斤</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">135</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">145</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">180</td>
-              <td style="padding: 8px; border: 1px solid #dee2e6;">180</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">逾 15 公斤，不逾 20 公斤</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$135</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$145</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$180</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$113</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$123</td>
+              <td style="padding: 8px; border: 1px solid #dee2e6;">$158</td>
             </tr>
           </tbody>
         </table>
       </div>
-      
-      <!-- 郵局官方尺寸與重量規範 -->
-      <ul style="font-size: 0.85em; color: #6c757d; margin: 8px 0 0 0; padding-left: 20px; line-height: 1.5;">
-        <li><strong>重量限制：</strong>每件重量不得超過 20 公斤。</li>
-        <li><strong>尺寸限制：</strong>最大尺寸為長+寬+高總和不得逾 150 公分。</li>
-      </ul>
     </div>
   </div>
 
   <!-- 2. 大材積 / 超大件標準 -->
   <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px;">
-    <h4 style="margin-top: 0; color: #0056b3; font-size: 1.1em;">🚛 大材積 / 超大件標準 <span style="font-size: 0.85em; color: #dc3545; background: #ffeeba; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">備註：可寄離島</span></h4>
+    <h4 style="margin-top: 0; color: #0056b3; font-size: 1.1em;">🚛 大材積 / 超大件標準 <span style="font-size: 0.85em; color: #dc3545; background: #ffeeba; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">可寄離島</span></h4>
     
     <div style="margin-bottom: 20px; background: #fff; padding: 12px; border: 1px solid #dee2e6; border-left: 4px solid #f6c23e; border-radius: 4px;">
       <strong style="color: #333; font-size: 1.05em;">🏪 7-11 大材積交貨便</strong>
