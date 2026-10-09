@@ -8,113 +8,99 @@
 </head>
 <body>
   <!-- 登入視圖 -->
-  <div id="login-view">
+  <div id="login-view" class="auth-view">
     <h2>炎宙商貿 | 跨境工廠採購系統</h2>
-    <input type="email" id="auth-email" placeholder="帳號 (Email)">
-    <input type="password" id="auth-password" placeholder="密碼">
-    <button id="login-btn" class="btn-orange">登入</button>
+    <input type="email" id="auth-email" placeholder="帳號 (Email)" aria-label="帳號 (Email)">
+    <input type="password" id="auth-password" placeholder="密碼" aria-label="密碼">
+    <button id="login-btn" class="btn-orange" type="button">登入</button>
   </div>
 
   <!-- 主應用視圖 -->
-  <div id="app-view">
+  <div id="app-view" class="app-view">
     <header class="header">
-      <!-- 上半部：標題與用戶資訊 -->
       <div class="header-brand">
         <h2>嚴選優質工廠貨源專區</h2>
         <span id="user-info" class="user-info"></span>
       </div>
 
-      <!-- 下半部：功能導覽列 (支援手機橫向滑動防擠壓) -->
       <nav class="header-nav" id="header-nav">
-        <button class="nav-btn btn-orange" onclick="showAppView()">返回購物</button>
-        <button class="nav-btn btn-teal" onclick="showShippingCalcView()">跨境運費試算</button>
-        <button class="nav-btn btn-purple" onclick="showShippingRatesView()">物流收費標準</button>
-        <button class="nav-btn btn-orange" onclick="loadMyOrders()">我的訂單</button>
-        <button id="admin-btn" class="nav-btn btn-red" onclick="loadAdminPanel()" style="display: none;">後台管理</button>
-        <button class="nav-btn btn-gray" onclick="logout()">登出</button>
+        <button class="nav-btn btn-orange" type="button" onclick="showAppView()">返回購物</button>
+        <button class="nav-btn btn-teal" type="button" onclick="showShippingCalcView()">跨境運費試算</button>
+        <button class="nav-btn btn-purple" type="button" onclick="showShippingRatesView()">物流收費標準</button>
+        <button class="nav-btn btn-orange" type="button" onclick="loadMyOrders()">我的訂單</button>
+        <button id="admin-btn" class="nav-btn btn-red" type="button" onclick="loadAdminPanel()" style="display: none;">後台管理</button>
+        <button class="nav-btn btn-gray" type="button" onclick="logout()">登出</button>
       </nav>
     </header>
-<div class="layout-body" style="position: relative; display: flex; align-items: flex-start; gap: 15px; width: 100%;">
-    <!-- 1. 可折疊側邊欄容器 -->
-    <aside id="sidebar-wrapper" class="sidebar-wrapper">
-      <!-- 折疊控制列 -->
-      <button type="button" class="sidebar-toggle-bar" onclick="toggleSidebar()" aria-label="收合選單">
-        <span id="sidebar-toggle-icon">◀</span>
-        <span id="sidebar-toggle-text">收合分類</span>
-      </button>
 
-      <!-- 模糊搜索觸發框 -->
-      <div class="search-trigger-box" onclick="openSearchModal()">
-        <span style="font-size: 1.1em;">🔍</span>
-        <span class="search-trigger-text">產品模糊搜尋...</span>
-      </div>
+    <div class="layout-body">
+      <aside id="sidebar-wrapper" class="sidebar-wrapper">
+        <button type="button" class="sidebar-toggle-bar" onclick="toggleSidebar()" aria-label="收合選單">
+          <span id="sidebar-toggle-icon">◀</span>
+          <span id="sidebar-toggle-text">收合分類</span>
+        </button>
 
-      <!-- 左側分類選單 -->
-      <div class="sidebar" id="category-sidebar">
-        <button class="category-btn sidebar-btn active" onclick="switchCategory(this, '純鈦製品')">純鈦製品</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '日用品')">日用品</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '家居軟裝')">家居軟裝</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '寵物用品')">寵物用品</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '行李箱包')">行李箱包</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '機能包')">機能包</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '輕奢女包')">輕奢女包</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '輕奢飾品')">輕奢飾品</button>
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '學生文具')">學生文具</button> -->
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '女裝')">女裝</button> -->
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '男裝')">男裝</button> -->
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '展店用品')">展店用品</button> -->
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '辦公文具')">辦公文具</button>
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '五金-手工具')">五金-手工具</button> -->
-        <!-- <button class="category-btn sidebar-btn" onclick="switchCategory(this, '家用五金')">家用五金</button> -->
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '3C配件')">3C配件</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '小型家電')">小型家電</button>
-        <button class="category-btn sidebar-btn" onclick="switchCategory(this, '中港澳通路')">中港澳通路</button>
-      </div>
-    </aside>
-
-    <!-- 2. 右側產品展示區 (補回此容器) -->
-    <div class="product-grid" id="product-grid" style="flex: 1;">
-      <!-- 產品卡片由 JS 動態生成 -->
-    </div>
-
-    <!-- 3. 中央浮動模糊搜索彈窗 -->
-    <div id="fuzzy-search-modal" class="fuzzy-search-overlay" onclick="handleSearchOverlayClick(event)">
-      <div class="fuzzy-search-card">
-        <button type="button" class="fuzzy-close-btn" onclick="closeSearchModal()">&times;</button>
-        <h3 style="margin-top: 0; margin-bottom: 16px; color: #212529; font-size: 1.25em;">產品模糊搜尋</h3>
-        
-        <div class="fuzzy-input-group">
-          <input type="text" id="fuzzy-search-input" placeholder="輸入關鍵字 (如：SGS、輕奢、碳纖維)..." onkeydown="if(event.key==='Enter') executeFuzzySearch()">
-          <button type="button" class="btn-orange" onclick="executeFuzzySearch()" style="padding: 10px 18px; white-space: nowrap;">搜尋</button>
+        <div class="search-trigger-box" onclick="openSearchModal()" role="button" tabindex="0" aria-label="產品模糊搜尋">
+          <span style="font-size: 1.1em;">🔍</span>
+          <span class="search-trigger-text">產品模糊搜尋...</span>
         </div>
 
-        <div style="font-size: 0.88em; color: #6c757d; margin-bottom: 8px;">熱門建議搜尋詞：</div>
-        <div class="fuzzy-tags-container">
-          <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('SGS')">SGS</button>
-          <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('歐盟CE')">歐盟CE</button>
-          <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('實力工廠')">實力工廠</button>
+        <div class="sidebar" id="category-sidebar">
+          <button class="category-btn sidebar-btn active" type="button" onclick="switchCategory(this, '純鈦製品')">純鈦製品</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '日用品')">日用品</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '家居軟裝')">家居軟裝</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '寵物用品')">寵物用品</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '行李箱包')">行李箱包</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '機能包')">機能包</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '輕奢女包')">輕奢女包</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '輕奢飾品')">輕奢飾品</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '辦公文具')">辦公文具</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '3C配件')">3C配件</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '小型家電')">小型家電</button>
+          <button class="category-btn sidebar-btn" type="button" onclick="switchCategory(this, '中港澳通路')">中港澳通路</button>
+        </div>
+      </aside>
+
+      <main class="product-grid" id="product-grid" aria-live="polite">
+        <!-- 產品卡片由 JS 動態生成 -->
+      </main>
+
+      <div id="fuzzy-search-modal" class="fuzzy-search-overlay" onclick="handleSearchOverlayClick(event)">
+        <div class="fuzzy-search-card">
+          <button type="button" class="fuzzy-close-btn" onclick="closeSearchModal()">&times;</button>
+          <h3 style="margin-top: 0; margin-bottom: 16px; color: #212529; font-size: 1.25em;">產品模糊搜尋</h3>
+
+          <div class="fuzzy-input-group">
+            <input type="text" id="fuzzy-search-input" placeholder="輸入關鍵字 (如：SGS、輕奢、碳纖維)..." onkeydown="if(event.key==='Enter') executeFuzzySearch()">
+            <button type="button" class="btn-orange" onclick="executeFuzzySearch()" style="padding: 10px 18px; white-space: nowrap;">搜尋</button>
+          </div>
+
+          <div style="font-size: 0.88em; color: #6c757d; margin-bottom: 8px;">熱門建議搜尋詞：</div>
+          <div class="fuzzy-tags-container">
+            <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('SGS')">SGS</button>
+            <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('歐盟CE')">歐盟CE</button>
+            <button type="button" class="fuzzy-tag-chip" onclick="selectSearchKeyword('實力工廠')">實力工廠</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="cart-bar">
-    <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
-    <div style="display: flex; gap: 10px;">
-      <button class="btn-orange" onclick="openCartModal()" style="background: #17a2b8;">查看採購車</button>
-      <button class="btn-orange" id="checkout-btn">前往結帳</button>
+
+    <div class="cart-bar">
+      <div>已選項目：<span id="cart-total-qty">0</span> 件 | 總計(未稅)：$<span id="cart-total-amount">0</span></div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-orange" type="button" onclick="openCartModal()" style="background: #17a2b8;">查看採購車</button>
+        <button class="btn-orange" type="button" id="checkout-btn">前往結帳</button>
+      </div>
     </div>
   </div>
-  </div>
 
-<!-- 結帳與匯款視圖 (支援結帳模式 / 匯款模式雙向切換) -->
+  <!-- 結帳與匯款視圖 -->
   <div id="checkout-view" style="display: none; padding: 20px; max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-    <!-- 頂部標題與返回按鈕 -->
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-      <button id="checkout-back-btn" class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
+      <button id="checkout-back-btn" class="btn-orange" type="button" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回購物</button>
       <h2 id="checkout-view-title" style="margin: 0; font-size: 1.3em;">訂單結帳與配送資料</h2>
     </div>
 
-    <!-- 區塊 A：建立訂單時輸入配送資料之控件 (匯款模式時隱藏) -->
     <div id="delivery-inputs-container">
       <div style="margin-bottom: 15px;">
         <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">收件人姓名 *</label>
@@ -149,14 +135,12 @@
       <div id="dynamic-shipping-fields" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 15px;"></div>
     </div>
 
-    <!-- 區塊 B：唯讀配送資料 (不可更動的文字，僅匯款模式時顯示) -->
     <div id="delivery-readonly-container" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
       <h4 style="margin-top: 0; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 6px;">📦 訂單配送資料 (唯讀)</h4>
       <p style="margin: 6px 0; font-size: 0.95em;"><strong>訂單編號：</strong><span id="readonly-order-id">-</span></p>
       <p style="margin: 6px 0; font-size: 0.95em;"><strong>配送資訊：</strong><span id="readonly-delivery-info">-</span></p>
     </div>
 
-    <!-- 區塊 C：金額明細 (共用) -->
     <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 20px; font-size: 0.95em;">
       <div id="checkout-calc-rows">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
@@ -175,10 +159,8 @@
       <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
     </div>
 
-    <!-- 區塊 D：送出訂單按鈕 (僅結帳模式顯示) -->
     <button type="button" id="btn-submit-order" class="btn-orange" onclick="submitOrder()" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認並送出訂單</button>
 
-    <!-- 區塊 E：匯款帳戶資訊與回報欄位 (僅匯款模式顯示) -->
     <div id="payment-report-container" style="display: none;">
       <div style="background: #e9ecef; border-left: 4px solid #007bff; border-radius: 4px; padding: 12px; margin-bottom: 15px; font-size: 0.9em; color: #333;">
         <strong style="display: block; margin-bottom: 5px; color: #0056b3;">🏦 官方匯款帳戶資訊：</strong>
@@ -200,35 +182,29 @@
       <button type="button" id="btn-submit-payment" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px; background: #28a745;">確認送出匯款核帳資料</button>
     </div>
   </div>
-    <!-- 我的訂單視圖 (預設隱藏) -->
-    <div id="orders-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-      
-      <!-- 標題與返回按鈕列 -->
-      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-        <button class="btn-orange" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回上一頁</button>
-        <h2 style="margin: 0;">我的訂單</h2>
-      </div>
-      
-      <!-- 狀態標籤分頁 (加入 order-tab-btn 與 switchOrderTab) -->
-      <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-        <button class="category-btn order-tab-btn active" style="width: auto;" onclick="switchOrderTab(this, '未付款')">未付款</button>
-        <button class="category-btn order-tab-btn" style="width: auto;" onclick="switchOrderTab(this, '進行中')">進行中 (含待審核)</button>
-        <button class="category-btn order-tab-btn" style="width: auto;" onclick="switchOrderTab(this, '完成')">完成訂單</button>
-      </div>
 
-      <!-- 訂單列表容器 -->
-      <div id="orders-list-container">
-        <!-- JS 動態生成訂單卡片 -->
-      </div>
+  <div id="orders-view" style="display: none; padding: 2rem; max-width: 800px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+      <button class="btn-orange" type="button" onclick="showAppView()" style="background: #6c757d; padding: 6px 12px; font-size: 0.9em;">⬅ 返回上一頁</button>
+      <h2 style="margin: 0;">我的訂單</h2>
     </div>
-    
-  <!-- 管理員後台視圖 (預設隱藏) -->
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+      <button class="category-btn order-tab-btn active" type="button" style="width: auto;" onclick="switchOrderTab(this, '未付款')">未付款</button>
+      <button class="category-btn order-tab-btn" type="button" style="width: auto;" onclick="switchOrderTab(this, '進行中')">進行中 (含待審核)</button>
+      <button class="category-btn order-tab-btn" type="button" style="width: auto;" onclick="switchOrderTab(this, '完成')">完成訂單</button>
+    </div>
+
+    <div id="orders-list-container">
+      <!-- JS 動態生成訂單卡片 -->
+    </div>
+  </div>
+
   <div id="admin-view" style="display: none; padding: 2rem; max-width: 900px; margin: 20px auto; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
     <h2 style="color: #dc3545;">管理員後台</h2>
 
     <div style="margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-      <button class="category-btn active" style="width: auto;">訂單管理 (運費與核帳)</button>
-      <!-- 帳號管理預留位置 -->
+      <button class="category-btn active" type="button" style="width: auto;">訂單管理 (運費與核帳)</button>
     </div>
 
     <div id="admin-orders-container">
@@ -720,13 +696,12 @@
         <li><strong>服務範圍：</strong><span style="color: #dc3545;">僅限台灣本島門市（不提供離島寄取）</span>。</li>
         <li><strong>尺寸限制：</strong>長＋寬＋高總和 ≤ 120 公分（專用寄件箱尺寸約為 45 × 40 × 35 公分）。</li>
         <li><strong>重量限制：</strong>重量 ≤ 10 公斤。</li>
-        <li><strong>包裝規範：</strong>必須使用 7-ELEVEN 門市購買的「120cm專用寄件箱」（每個 25 元），<strong>不可自行使用一般紙箱或將多件貨品綑綁</strong>。</li>
       </ul>
     </div>
 
     <div>
       <strong style="color: #333; font-size: 1.05em;">🐈‍⬛ 黑貓宅急便 (常溫宅配)</strong>
-      <p style="font-size: 0.9em; color: #6c757d; margin: 4px 0 8px 0;">*本島僅列出大材積報價；離島適用全尺寸報價</p>
+      <p style="font-size: 0.9em; color: #6c757d; margin: 4px 0 8px 0;">*本島僅適用大材積報價；離島適用全尺寸報價</p>
       <table style="width: 100%; border-collapse: collapse; font-size: 0.95em; text-align: left; background: #fff;">
         <thead>
           <tr style="background: #e9ecef;">
@@ -738,12 +713,12 @@
         <tbody>
           <tr>
             <td style="padding: 8px; border: 1px solid #dee2e6;">60公分以下 (含)</td>
-            <td style="padding: 8px; border: 1px solid #dee2e6; color: #999;">- (小材積)</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6; color: #999;">對買方不划算，請用小材積</td>
             <td style="padding: 8px; border: 1px solid #dee2e6;">$220</td>
           </tr>
           <tr>
             <td style="padding: 8px; border: 1px solid #dee2e6;">61 ~ 90公分</td>
-            <td style="padding: 8px; border: 1px solid #dee2e6; color: #999;">- (小材積)</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6; color: #999;">對買方不划算，請用小材積</td>
             <td style="padding: 8px; border: 1px solid #dee2e6;">$280</td>
           </tr>
           <tr>
@@ -759,9 +734,20 @@
         </tbody>
       </table>
     </div>
+    <!-- 新竹物流 (大材積/報價專區) -->
+    <div style="margin-top: 20px; background: #fff; padding: 15px; border: 1px solid #dee2e6; border-left: 4px solid #00B900; border-radius: 4px;">
+      <strong style="color: #333; font-size: 1.05em;">🚚 新竹物流 (大型貨物 / 專車宅配)</strong>
+      <p style="margin: 8px 0 15px 0; color: #495057; font-size: 0.95em; line-height: 1.5;">
+        大材積、超重貨物或特殊配送需求，<strong>運費須詢問 LINE 官方客服，以物流公司實際測量與地區報價為準。</strong>
+      </p>
+      
+      <!-- LINE 客服跳轉按鈕 (請將 href 替換為您的官方 LINE 連結) -->
+      <a href="https://line.me/R/ti/p/@YOUR_LINE_ID" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; background: #00B900; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.95em; box-shadow: 0 2px 4px rgba(0,185,0,0.2);">
+        <span style="font-size: 1.2em;">💬</span> 聯絡 LINE 官方客服詢價
+      </a>
+    </div>
   </div>
-</div>    </div>
-  </div>
+</div>
   <!-- 特定分類密碼驗證彈窗 -->
   <div id="category-lock-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
     <div style="background: #fff; padding: 24px; border-radius: 10px; width: 90%; max-width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); position: relative; text-align: center;">
