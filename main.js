@@ -907,6 +907,11 @@ window.renderOrdersList = function(statusCategory) {
     } else if (order.status === '匯款待查') {
       actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.9em;">匯款審核中 (後五碼: ${order.account_last_5 || '未提供'})</span>`;
     }
+    else if (order.status === '進行中') {
+      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#28a745; font-size:0.95em; font-weight:bold;">📦 款項已確認，安排出貨中</span>`;
+    } else if (order.status === '完成') {
+      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#6c757d; font-size:0.95em; font-weight:bold;">✅ 此訂單已出貨並完成結案</span>`;
+    }
     
     // 加入防呆：確保 order_items 和 specs 存在，相容舊訂單
     const orderItemsSafe = order.order_items || [];
@@ -972,7 +977,7 @@ window.loadAdminPanel = async function() {
   const { data, error } = await supabase
     .from('orders')
     .select('order_id, user_id, user_no, user_name, total_amount, status, admin_note, is_payable, account_last_5, tax_id, created_at')
-    .in('status', ['未付款', '匯款待查'])
+    .in('status', ['未付款', '匯款待查', '進行中'])
     .order('created_at', { ascending: false });
 
   if (error) return container.innerHTML = `<p style="color:red;">載入失敗: ${error.message}</p>`;
@@ -1003,6 +1008,17 @@ window.loadAdminPanel = async function() {
           <h4 style="margin-top: 0; color: #383d41;">匯款審核</h4>
           <p>客戶統編: ${order.tax_id || '無'} | 帳戶後五碼: <strong style="color:red; font-size: 1.2em;">${order.account_last_5}</strong></p>
           <button id="btn-approve-${order.order_id}" class="btn-orange" style="background: #28a745;" onclick="adminApprovePayment('${order.order_id}')">確認已收款 (轉為進行中)</button>
+        </div>
+      `;
+    }
+
+    // 情境 C：進行中 (出貨與結案)
+    else if (order.status === '進行中') {
+      actionHtml = `
+        <div style="background: #e2eef9; padding: 10px; margin-top: 10px; border-radius: 4px;">
+          <h4 style="margin-top: 0; color: #0056b3;">🚚 出貨與結案管理</h4>
+          <p style="font-size: 0.9em; margin-bottom: 8px;">款項已確認。若已完成出貨，請將此訂單結案。</p>
+          <button id="btn-complete-${order.order_id}" class="btn-orange" style="background: #6c757d;" onclick="adminCompleteOrder('${order.order_id}')">標記為「完成訂單」</button>
         </div>
       `;
     }
@@ -1147,6 +1163,39 @@ window.adminApprovePayment = async function(orderId) {
     // 若失敗，恢復按鈕狀態
     if (btn) {
       btn.innerText = '確認已收款 (轉為進行中)';
+      btn.disabled = false;
+    }
+  }
+};
+
+// 管理員將訂單標記為完成 (結案)
+window.adminCompleteOrder = async function(orderId) {
+  if (!confirm(`確定要將訂單 ${orderId} 標記為「完成」嗎？\n請確認商品已出貨，此動作將使訂單結案。`)) {
+    return;
+  }
+
+  const btn = document.getElementById(`btn-complete-${orderId}`);
+  try {
+    if (btn) {
+      btn.innerText = '處理中...';
+      btn.disabled = true;
+    }
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: '完成' })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    alert('訂單已出貨並轉為「完成」結案。');
+    loadAdminPanel(); // 成功後重新整理列表
+
+  } catch (err) {
+    console.error("完成訂單失敗:", err);
+    alert(`操作失敗: ${err.message}`);
+    if (btn) {
+      btn.innerText = '標記為「完成訂單」';
       btn.disabled = false;
     }
   }
