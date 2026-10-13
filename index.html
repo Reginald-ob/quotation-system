@@ -179,7 +179,8 @@
         <input type="text" id="pay-tax-id" maxlength="8" placeholder="若需統編請填寫 8 碼" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
       </div>
 
-      <button type="button" id="btn-submit-payment" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px; background: #28a745;">確認送出匯款核帳資料</button>
+      <!-- 替換匯款按鈕：強制綁定 onclick 與 type="button" -->
+      <button type="button" id="btn-submit-payment" onclick="submitOrderPaymentReport()" class="btn-orange" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px; background: #28a745;">確認送出匯款核帳資料</button>
     </div>
   </div>
 

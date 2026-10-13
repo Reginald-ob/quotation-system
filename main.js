@@ -591,42 +591,125 @@ async function processCheckout() {
 
 // ================= 6. 匯款回報模式 =================
 window.openOrderPaymentView = async function(orderId) {
-  hideAllMainViews();
-  const checkoutView = document.getElementById('checkout-view');
-  checkoutView.style.display = 'block';
+  try {
+    hideAllMainViews();
+    const checkoutView = document.getElementById('checkout-view');
+    if (checkoutView) checkoutView.style.display = 'block';
 
-  document.getElementById('checkout-view-title').innerText = `訂單匯款回報 (${orderId})`;
-  document.getElementById('checkout-back-btn').setAttribute('onclick', 'loadMyOrders()');
-  document.getElementById('checkout-back-btn').innerText = '⬅ 返回我的訂單';
-  document.getElementById('delivery-inputs-container').style.display = 'none';
-  document.getElementById('btn-submit-order').style.display = 'none';
-  document.getElementById('checkout-calc-rows').style.display = 'none';
-  document.getElementById('fee-adjust-warn').style.display = 'none';
-  document.getElementById('delivery-readonly-container').style.display = 'block';
-  document.getElementById('payment-report-container').style.display = 'block';
-  document.getElementById('readonly-order-id').innerText = orderId;
-  document.getElementById('readonly-delivery-info').innerText = '資料讀取中...';
-  document.getElementById('checkout-final-total').innerText = '...';
+    const titleEl = document.getElementById('checkout-view-title');
+    if (titleEl) titleEl.innerText = `訂單匯款回報 (${orderId})`;
 
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('order_id', orderId)
-    .eq('user_id', currentUser.id)
-    .single();
+    const backBtn = document.getElementById('checkout-back-btn');
+    if (backBtn) {
+      backBtn.setAttribute('onclick', 'loadMyOrders()');
+      backBtn.innerText = '⬅ 返回我的訂單';
+    }
 
-  if (error || !order) {
-    alert('無法載入訂單資料: ' + (error ? error.message : '查無此訂單'));
-    loadMyOrders();
-    return;
+    // 安全地隱藏不必要的結帳欄位
+    ['delivery-inputs-container', 'btn-submit-order', 'checkout-calc-rows', 'fee-adjust-warn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // 安全地顯示匯款欄位
+    ['delivery-readonly-container', 'payment-report-container'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+    });
+
+    // 初始化字樣
+    const readOrderId = document.getElementById('readonly-order-id');
+    if (readOrderId) readOrderId.innerText = orderId;
+
+    const readInfo = document.getElementById('readonly-delivery-info');
+    if (readInfo) readInfo.innerText = '資料讀取中...';
+
+    const finalTotal = document.getElementById('checkout-final-total');
+    if (finalTotal) finalTotal.innerText = '...';
+
+    // 讀取訂單最新資料
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('order_id', orderId)
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (error || !order) {
+      alert('無法載入訂單資料: ' + (error ? error.message : '查無此訂單'));
+      loadMyOrders();
+      return;
+    }
+
+    // 更新全域變數，供送出時使用
+    currentPayingOrderId = orderId;
+    if (readInfo) readInfo.innerText = order.admin_note || '標準配送';
+    if (finalTotal) finalTotal.innerText = order.total_amount;
+
+    const last5Input = document.getElementById('pay-account-last-5');
+    if (last5Input) last5Input.value = order.account_last_5 || '';
+
+    const taxIdInput = document.getElementById('pay-tax-id');
+    if (taxIdInput) taxIdInput.value = order.tax_id || '';
+
+    // 綁定按鈕 (雙重保險)
+    const payBtn = document.getElementById('btn-submit-payment');
+    if (payBtn) payBtn.onclick = () => submitOrderPaymentReport(orderId);
+
+  } catch (err) {
+    console.error("載入匯款頁面錯誤:", err);
+    alert("載入頁面時發生錯誤，請重新整理後再試");
   }
+};
 
-  currentPayingOrderId = orderId;
-  document.getElementById('readonly-delivery-info').innerText = order.admin_note || '標準配送';
-  document.getElementById('checkout-final-total').innerText = order.total_amount;
-  document.getElementById('pay-account-last-5').value = order.account_last_5 || '';
-  document.getElementById('pay-tax-id').value = order.tax_id || '';
-  document.getElementById('btn-submit-payment').onclick = () => submitOrderPaymentReport(orderId);
+window.submitOrderPaymentReport = async function(orderId) {
+  try {
+    // 支援從 HTML 的 onclick 直接呼叫 (此時會吃到 currentPayingOrderId)
+    const targetOrderId = (typeof orderId === 'string') ? orderId : currentPayingOrderId;
+    if (!targetOrderId) return alert('找不到訂單編號，請返回重新操作');
+
+    const last5Input = document.getElementById('pay-account-last-5');
+    const taxIdInput = document.getElementById('pay-tax-id');
+
+    if (!last5Input) return alert('找不到匯款帳號輸入框，請確認網頁結構是否正確');
+
+    const last5 = last5Input.value.trim();
+    const taxId = taxIdInput ? taxIdInput.value.trim() : '';
+
+    // 驗證 5 碼數字
+    if (!last5 || !/^\d{5}$/.test(last5)) {
+      return alert('請輸入正確的匯款帳號後 5 碼數字 (需為 5 位數純數字)');
+    }
+
+    const payBtn = document.getElementById('btn-submit-payment');
+    if (payBtn) {
+      payBtn.disabled = true;
+      payBtn.innerText = '資料送出中...';
+    }
+
+    // 送出更新至資料庫
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: '匯款待查', account_last_5: last5, tax_id: taxId || null })
+      .eq('order_id', targetOrderId)
+      .eq('user_id', currentUser.id);
+
+    if (error) throw error;
+
+    alert(`訂單 ${targetOrderId} 匯款資料已送出！待管理員審核確認後即會開始安排出貨。`);
+    loadMyOrders();
+
+  } catch (err) {
+    console.error("送出匯款資料錯誤:", err);
+    alert('送出失敗: ' + err.message);
+
+    // 發生錯誤時恢復按鈕狀態
+    const payBtn = document.getElementById('btn-submit-payment');
+    if (payBtn) {
+      payBtn.disabled = false;
+      payBtn.innerText = '確認送出匯款核帳資料';
+    }
+  }
 };
 
 window.submitOrder = async function() {
