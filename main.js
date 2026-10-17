@@ -1825,14 +1825,31 @@ window.executeCategorySwitch = function(btnElement, categoryName) {
   }
 };
 
-// 5. 【唯一入口】統一處理分類點擊事件
-window.switchCategory = function(btnElement, categoryName) {
-  // 攔截：如果點擊的是受保護的類別且尚未解鎖，就呼叫密碼彈窗
-  if (categoryName === PROTECTED_CATEGORY_CONFIG.targetCategory && !isProtectedCategoryUnlocked) {
-    window.openCategoryLockModal(btnElement, categoryName);
+// 5. 【唯一入口】統一處理分類點擊事件 (加入自動去空白與防呆)
+window.switchCategory = function(arg1, arg2) {
+  // 1. 防呆：檢查 HTML 是否漏寫了 this (例如 onclick="switchCategory('中港澳通路')")
+  let btnElement, categoryName;
+  if (typeof arg1 === 'string') {
+    btnElement = null;
+    categoryName = arg1;
+  } else {
+    btnElement = arg1;
+    categoryName = arg2;
+  }
+
+  // 2. 自動過濾頭尾隱形空白，確保字串 100% 精準對齊
+  const cleanCategoryName = (categoryName || '').trim();
+  const targetCategory = PROTECTED_CATEGORY_CONFIG.targetCategory.trim();
+
+  // 👉 萬一還是沒反應，請按 F12 看 Console，這行會直接告訴你系統抓到了什麼字！
+  console.log(`【除錯】你點擊了: [${cleanCategoryName}] | 上鎖目標是: [${targetCategory}] | 解鎖狀態: ${isProtectedCategoryUnlocked}`);
+
+  // 3. 攔截：如果點擊的是受保護的類別且尚未解鎖
+  if (cleanCategoryName === targetCategory && !isProtectedCategoryUnlocked) {
+    window.openCategoryLockModal(btnElement, cleanCategoryName);
     return;
   }
   
-  // 正常未受保護、或已經解鎖的類別，直接執行切換
-  window.executeCategorySwitch(btnElement, categoryName);
+  // 4. 正常未受保護、或已經解鎖的類別，直接執行切換
+  window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
