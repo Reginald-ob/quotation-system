@@ -1746,7 +1746,7 @@ window.addEventListener('scroll', () => {
   }
 }, { passive: true });
 
-// ================= 特定商品分類密碼防護設定 =================
+// ================= 特定商品分類密碼防護設定 (動態生成終極防呆版) =================
 const PROTECTED_CATEGORY_CONFIG = {
   targetCategory: '中港澳通路',  // ⚠️ 需與 HTML 及 Sheet 分頁名稱一模一樣
   secretPassword: '88888888'      
@@ -1756,21 +1756,47 @@ let isProtectedCategoryUnlocked = false;
 let pendingCategoryBtn = null;
 let pendingCategoryName = null;
 
-// 1. 開啟密碼彈窗
+// 1. 開啟密碼彈窗 (動態生成 HTML，保證絕對顯示)
 window.openCategoryLockModal = function(btnElement, categoryName) {
   pendingCategoryBtn = btnElement;
   pendingCategoryName = categoryName;
 
-  const modal = document.getElementById('category-lock-modal');
+  let modal = document.getElementById('category-lock-modal');
+  
+  // 若找不到彈窗，動態生成；若已被包在錯誤的隱藏容器內，則強制搬移到 body 最外層
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'category-lock-modal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 999999; justify-content: center; align-items: center;';
+    
+    modal.innerHTML = `
+      <div style="background: #fff; padding: 25px; border-radius: 12px; width: 90%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; text-align: center;">
+        <span onclick="closeCategoryLockModal()" style="position: absolute; top: 10px; right: 18px; font-size: 1.8em; cursor: pointer; color: #888; line-height: 1;">&times;</span>
+        <h3 style="margin-top: 0; margin-bottom: 12px; color: #212529; font-size: 1.3em;">🔒 專屬分類授權驗證</h3>
+        <p style="font-size: 0.95em; color: #6c757d; margin-bottom: 18px;">此分類商品為授權限定，請輸入訪問密碼：</p>
+        <input type="password" id="category-lock-input" placeholder="請輸入存取密碼" style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1.1em; box-sizing: border-box; margin-bottom: 12px; outline: none; text-align: center;" onkeydown="if(event.key==='Enter') verifyCategoryPassword()">
+        <p id="category-lock-error" style="color: #dc3545; font-size: 0.9em; margin: 0 0 15px 0; display: none; font-weight: bold;">❌ 密碼錯誤，請重新輸入</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button type="button" class="btn-orange" onclick="verifyCategoryPassword()" style="flex: 1; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認解鎖</button>
+          <button type="button" class="btn-orange" onclick="closeCategoryLockModal()" style="flex: 1; padding: 12px; font-size: 1.05em; background: #6c757d; border-radius: 6px;">取消</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } else {
+    // 💡 關鍵修復：強制把原本卡在隱藏容器裡的彈窗，拔出來放到網頁最頂層
+    document.body.appendChild(modal);
+  }
+
   const input = document.getElementById('category-lock-input');
   const errorText = document.getElementById('category-lock-error');
 
-  if (!modal || !input) return alert('缺少密碼彈窗 HTML 結構！請檢查 index.html');
-
-  input.value = '';
+  if (input) input.value = '';
   if (errorText) errorText.style.display = 'none';
+  
   modal.style.display = 'flex';
-  setTimeout(() => input.focus(), 50);
+  setTimeout(() => { if (input) input.focus(); }, 100);
 };
 
 // 2. 關閉密碼彈窗
@@ -1789,8 +1815,11 @@ window.verifyCategoryPassword = function() {
 
   if (enteredPassword === PROTECTED_CATEGORY_CONFIG.secretPassword) {
     isProtectedCategoryUnlocked = true; 
-    document.getElementById('category-lock-modal').style.display = 'none';
+    const modal = document.getElementById('category-lock-modal');
+    if (modal) modal.style.display = 'none';
+    
     window.executeCategorySwitch(pendingCategoryBtn, pendingCategoryName);
+    
     pendingCategoryBtn = null;
     pendingCategoryName = null;
   } else {
@@ -1802,17 +1831,13 @@ window.verifyCategoryPassword = function() {
   }
 };
 
-// 4. 實際執行分類切換 (合併了樣式切換、資料載入與手機版收合)
+// 4. 實際執行分類切換
 window.executeCategorySwitch = function(btnElement, categoryName) {
-  // 清除所有按鈕的 active 狀態
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
-  // 將點擊的按鈕設為 active
   if (btnElement) btnElement.classList.add('active');
 
-  // 載入商品資料
   window.loadCategory(categoryName);
 
-  // 手機版點擊後自動收合側邊欄
   if (window.innerWidth <= 768) {
     const wrapper = document.getElementById('sidebar-wrapper');
     if (wrapper && !wrapper.classList.contains('collapsed')) {
@@ -1825,9 +1850,8 @@ window.executeCategorySwitch = function(btnElement, categoryName) {
   }
 };
 
-// 5. 【唯一入口】統一處理分類點擊事件 (加入自動去空白與防呆)
+// 5. 【唯一入口】統一處理分類點擊事件
 window.switchCategory = function(arg1, arg2) {
-  // 1. 防呆：檢查 HTML 是否漏寫了 this (例如 onclick="switchCategory('中港澳通路')")
   let btnElement, categoryName;
   if (typeof arg1 === 'string') {
     btnElement = null;
@@ -1837,19 +1861,13 @@ window.switchCategory = function(arg1, arg2) {
     categoryName = arg2;
   }
 
-  // 2. 自動過濾頭尾隱形空白，確保字串 100% 精準對齊
   const cleanCategoryName = (categoryName || '').trim();
   const targetCategory = PROTECTED_CATEGORY_CONFIG.targetCategory.trim();
 
-  // 👉 萬一還是沒反應，請按 F12 看 Console，這行會直接告訴你系統抓到了什麼字！
-  console.log(`【除錯】你點擊了: [${cleanCategoryName}] | 上鎖目標是: [${targetCategory}] | 解鎖狀態: ${isProtectedCategoryUnlocked}`);
-
-  // 3. 攔截：如果點擊的是受保護的類別且尚未解鎖
   if (cleanCategoryName === targetCategory && !isProtectedCategoryUnlocked) {
     window.openCategoryLockModal(btnElement, cleanCategoryName);
     return;
   }
   
-  // 4. 正常未受保護、或已經解鎖的類別，直接執行切換
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
