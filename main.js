@@ -1748,7 +1748,7 @@ window.addEventListener('scroll', () => {
 
 // ================= 特定商品分類密碼防護設定 =================
 const PROTECTED_CATEGORY_CONFIG = {
-  targetCategory: '中港澳通路', 
+  targetCategory: '中港澳通路',  // ⚠️ 需與 HTML 及 Sheet 分頁名稱一模一樣
   secretPassword: '88888888'      
 };
 
@@ -1756,7 +1756,7 @@ let isProtectedCategoryUnlocked = false;
 let pendingCategoryBtn = null;
 let pendingCategoryName = null;
 
-// 開啟密碼彈窗
+// 1. 開啟密碼彈窗
 window.openCategoryLockModal = function(btnElement, categoryName) {
   pendingCategoryBtn = btnElement;
   pendingCategoryName = categoryName;
@@ -1765,7 +1765,6 @@ window.openCategoryLockModal = function(btnElement, categoryName) {
   const input = document.getElementById('category-lock-input');
   const errorText = document.getElementById('category-lock-error');
 
-  // 防呆：若 HTML 中忘記放入彈窗結構，主動報錯提示
   if (!modal || !input) return alert('缺少密碼彈窗 HTML 結構！請檢查 index.html');
 
   input.value = '';
@@ -1774,7 +1773,7 @@ window.openCategoryLockModal = function(btnElement, categoryName) {
   setTimeout(() => input.focus(), 50);
 };
 
-// 關閉密碼彈窗
+// 2. 關閉密碼彈窗
 window.closeCategoryLockModal = function() {
   const modal = document.getElementById('category-lock-modal');
   if (modal) modal.style.display = 'none';
@@ -1782,7 +1781,7 @@ window.closeCategoryLockModal = function() {
   pendingCategoryName = null;
 };
 
-// 驗證密碼邏輯
+// 3. 驗證密碼邏輯
 window.verifyCategoryPassword = function() {
   const input = document.getElementById('category-lock-input');
   const errorText = document.getElementById('category-lock-error');
@@ -1791,10 +1790,7 @@ window.verifyCategoryPassword = function() {
   if (enteredPassword === PROTECTED_CATEGORY_CONFIG.secretPassword) {
     isProtectedCategoryUnlocked = true; 
     document.getElementById('category-lock-modal').style.display = 'none';
-    
-    // 執行載入
     window.executeCategorySwitch(pendingCategoryBtn, pendingCategoryName);
-    
     pendingCategoryBtn = null;
     pendingCategoryName = null;
   } else {
@@ -1806,15 +1802,17 @@ window.verifyCategoryPassword = function() {
   }
 };
 
-// 實際載入分類商品的底層邏輯
+// 4. 實際執行分類切換 (合併了樣式切換、資料載入與手機版收合)
 window.executeCategorySwitch = function(btnElement, categoryName) {
+  // 清除所有按鈕的 active 狀態
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
+  // 將點擊的按鈕設為 active
   if (btnElement) btnElement.classList.add('active');
 
-  // 🐛 修復核心：必須明確標示 window. 才能在 ES Module 中呼叫全域函式
+  // 載入商品資料
   window.loadCategory(categoryName);
 
-  // 手機端點選後自動收合左側抽屜
+  // 手機版點擊後自動收合側邊欄
   if (window.innerWidth <= 768) {
     const wrapper = document.getElementById('sidebar-wrapper');
     if (wrapper && !wrapper.classList.contains('collapsed')) {
@@ -1827,14 +1825,14 @@ window.executeCategorySwitch = function(btnElement, categoryName) {
   }
 };
 
-// 統一攔截：切換分類的唯一入口
+// 5. 【唯一入口】統一處理分類點擊事件
 window.switchCategory = function(btnElement, categoryName) {
-  // 檢查是否點擊受保護的類別且尚未解鎖
+  // 攔截：如果點擊的是受保護的類別且尚未解鎖，就呼叫密碼彈窗
   if (categoryName === PROTECTED_CATEGORY_CONFIG.targetCategory && !isProtectedCategoryUnlocked) {
     window.openCategoryLockModal(btnElement, categoryName);
     return;
   }
-
-  // 正常未受保護或已通過密碼驗證
+  
+  // 正常未受保護、或已經解鎖的類別，直接執行切換
   window.executeCategorySwitch(btnElement, categoryName);
 };
