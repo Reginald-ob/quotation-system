@@ -1748,17 +1748,16 @@ window.addEventListener('scroll', () => {
 
 // ================= 特定商品分類密碼防護設定 =================
 const PROTECTED_CATEGORY_CONFIG = {
-  targetCategory: '中港澳通路', // 欲上鎖的類別名稱 (需與按鈕文字及 Google Sheet 工作表名一致)
-  secretPassword: '88888888'      // 該專案自訂的存取密碼
+  targetCategory: '中港澳通路', 
+  secretPassword: '88888888'      
 };
 
-// 記錄本次連線中是否已解鎖成功 (避免切換其他分類後回來又要重複輸入)
 let isProtectedCategoryUnlocked = false;
 let pendingCategoryBtn = null;
 let pendingCategoryName = null;
 
 // 開啟密碼彈窗
-function openCategoryLockModal(btnElement, categoryName) {
+window.openCategoryLockModal = function(btnElement, categoryName) {
   pendingCategoryBtn = btnElement;
   pendingCategoryName = categoryName;
 
@@ -1766,15 +1765,19 @@ function openCategoryLockModal(btnElement, categoryName) {
   const input = document.getElementById('category-lock-input');
   const errorText = document.getElementById('category-lock-error');
 
+  // 防呆：若 HTML 中忘記放入彈窗結構，主動報錯提示
+  if (!modal || !input) return alert('缺少密碼彈窗 HTML 結構！請檢查 index.html');
+
   input.value = '';
-  errorText.style.display = 'none';
+  if (errorText) errorText.style.display = 'none';
   modal.style.display = 'flex';
   setTimeout(() => input.focus(), 50);
-}
+};
 
 // 關閉密碼彈窗
 window.closeCategoryLockModal = function() {
-  document.getElementById('category-lock-modal').style.display = 'none';
+  const modal = document.getElementById('category-lock-modal');
+  if (modal) modal.style.display = 'none';
   pendingCategoryBtn = null;
   pendingCategoryName = null;
 };
@@ -1783,32 +1786,35 @@ window.closeCategoryLockModal = function() {
 window.verifyCategoryPassword = function() {
   const input = document.getElementById('category-lock-input');
   const errorText = document.getElementById('category-lock-error');
-  const enteredPassword = input.value.trim();
+  const enteredPassword = input ? input.value.trim() : '';
 
   if (enteredPassword === PROTECTED_CATEGORY_CONFIG.secretPassword) {
-    isProtectedCategoryUnlocked = true; // 標記為已解鎖
+    isProtectedCategoryUnlocked = true; 
     document.getElementById('category-lock-modal').style.display = 'none';
     
-    // 執行載入被保護分類的資料
-    executeCategorySwitch(pendingCategoryBtn, pendingCategoryName);
+    // 執行載入
+    window.executeCategorySwitch(pendingCategoryBtn, pendingCategoryName);
     
     pendingCategoryBtn = null;
     pendingCategoryName = null;
   } else {
-    errorText.style.display = 'block';
-    input.value = '';
-    input.focus();
+    if (errorText) errorText.style.display = 'block';
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
   }
 };
 
 // 實際載入分類商品的底層邏輯
-function executeCategorySwitch(btnElement, categoryName) {
+window.executeCategorySwitch = function(btnElement, categoryName) {
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
   if (btnElement) btnElement.classList.add('active');
 
-  loadCategory(categoryName);
+  // 🐛 修復核心：必須明確標示 window. 才能在 ES Module 中呼叫全域函式
+  window.loadCategory(categoryName);
 
-  // 若在手機端操作，點選後自動收合左側抽屜
+  // 手機端點選後自動收合左側抽屜
   if (window.innerWidth <= 768) {
     const wrapper = document.getElementById('sidebar-wrapper');
     if (wrapper && !wrapper.classList.contains('collapsed')) {
@@ -1819,16 +1825,16 @@ function executeCategorySwitch(btnElement, categoryName) {
       if (text) text.innerText = '';
     }
   }
-}
+};
 
-// 修改 switchCategory 函式：加入密碼防護攔截
+// 統一攔截：切換分類的唯一入口
 window.switchCategory = function(btnElement, categoryName) {
   // 檢查是否點擊受保護的類別且尚未解鎖
   if (categoryName === PROTECTED_CATEGORY_CONFIG.targetCategory && !isProtectedCategoryUnlocked) {
-    openCategoryLockModal(btnElement, categoryName);
+    window.openCategoryLockModal(btnElement, categoryName);
     return;
   }
 
   // 正常未受保護或已通過密碼驗證
-  executeCategorySwitch(btnElement, categoryName);
+  window.executeCategorySwitch(btnElement, categoryName);
 };
