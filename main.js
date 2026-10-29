@@ -1900,49 +1900,53 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 =================
-window.fetchTaiwanBankCNYRate = async function() {
+// ================= CNY 即期匯率模組 (手動設定版) =================
+window.updateCNYRate = function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
 
-  try {
-    displayEl.innerText = '讀取中...';
-    
-    // 使用 allorigins 解決前端跨網域 (CORS) 限制，直接請求台銀每日 CSV
-    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
-    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
-    
-    if (!response.ok) throw new Error('匯率 API 回應異常');
-    
-    const csvText = await response.text();
-    const lines = csvText.split('\n');
-    
-    let cnySpotSellRate = null;
-    
-    for (const line of lines) {
-      // 尋找包含人民幣 (CNY) 的資料列
-      if (line.includes('CNY')) {
-        const columns = line.split(',');
-        // 台銀 CSV 欄位定義: [0]幣別, [1]現金買入, [2]現金賣出, [3]即期買入, [4]即期賣出
-        cnySpotSellRate = columns[4] ? columns[4].trim() : null;
-        break;
+  // 💡 請在這裡手動輸入最新的 CNY 匯率
+  const currentRate = 5.08; // <--- 修改此數值即可更新全站匯率
+  
+  const BASE_RATE = 4.9;    // 基準價 (無須變動)
+
+  if (currentRate && !isNaN(currentRate)) {
+    displayEl.innerText = currentRate.toFixed(2); // 顯示為小數點後兩位
+
+    // --- 波動計算與警示邏輯 ---
+    const diffPercent = ((currentRate - BASE_RATE) / BASE_RATE) * 100; // 計算漲跌幅 %
+
+    const tooltipIcon = document.getElementById('cny-tooltip-icon');
+    const tooltipText = document.getElementById('cny-tooltip-text');
+
+    // 判斷波動絕對值是否 >= 3%
+    if (Math.abs(diffPercent) >= 3) {
+      if (tooltipIcon) tooltipIcon.classList.add('warning');
+      if (tooltipText) {
+        tooltipText.classList.add('warning');
+        // 顯示紅色警告文字
+        const sign = diffPercent > 0 ? '+' : '';
+        tooltipText.innerHTML = `
+          <strong style="display:block; margin-bottom:4px; font-size:1.1em;">⚠️ 匯率劇烈波動警示</strong>
+          當前匯率 (${currentRate.toFixed(2)}) 對比基準價 (${BASE_RATE})<br>
+          已達 <span style="font-weight:bold; color:#ffc107;">${sign}${diffPercent.toFixed(2)}%</span> 的波動。<br>
+          <span style="font-size:0.9em; margin-top:4px; display:inline-block;">若近期穩定於此價格區間，<br>將可能啟動調價機制。</span>
+        `;
+      }
+    } else {
+      // 未達 3% 則恢復正常灰色狀態
+      if (tooltipIcon) tooltipIcon.classList.remove('warning');
+      if (tooltipText) {
+        tooltipText.classList.remove('warning');
+        tooltipText.innerHTML = `以 ${BASE_RATE} 為基準，當匯率波動超過 ±3% 至 ±5% 並穩定在該價格時，可能啟動調價機制。`;
       }
     }
-
-    // 檢查抓取到的數值是否正常
-    if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
-      displayEl.innerText = cnySpotSellRate;
-    } else {
-      displayEl.innerText = '暫無報價';
-    }
-
-  } catch (err) {
-    console.error('抓取 CNY 匯率失敗:', err);
-    displayEl.innerText = '抓取失敗';
+  } else {
+    displayEl.innerText = '未設定';
   }
 };
 
 // 綁定於網頁 DOM 結構載入完成後自動執行
 document.addEventListener('DOMContentLoaded', () => {
-  window.fetchTaiwanBankCNYRate();
+  window.updateCNYRate();
 });
