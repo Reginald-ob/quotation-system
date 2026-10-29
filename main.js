@@ -320,32 +320,21 @@ let currentPayingOrderId = null;
 
 // ================= 結帳金額計算與畫面渲染 =================
 window.updateCheckoutTotals = function() {
-  const subtotal = Number(currentCheckoutSubtotal) || 0; // 商品含稅小計
-  const shipping = Number(currentShippingFee) || 0;     // 國內運費
+  const subtotal = Number(currentCheckoutSubtotal) || 0;
+  const shipping = Number(currentShippingFee) || 0;
+  const taxAmount = Math.round(subtotal * 0.05);
+  const finalAmount = subtotal + taxAmount + shipping;
 
-  // 1. 商品部分反推未稅價與稅額 (商品本身已含稅)
-  const productPreTax = Math.round(subtotal / 1.05); // 商品未稅銷售額
-  const productTax = subtotal - productPreTax;       // 商品營業稅 (5%)
-
-  // 2. 總未稅銷售額 = 商品未稅 + 運費 (若運費視為未稅或獨立，此處以商品未稅為主)
-  const totalPreTax = productPreTax + shipping;
-  
-  // 3. 最終含稅總額 = 商品含稅小計 + 運費
-  const finalAmount = subtotal + shipping;
-
-  // 4. 更新畫面 DOM 元素
   const els = {
     subtotal: document.getElementById('checkout-subtotal'),
     shipping: document.getElementById('checkout-shipping-fee'),
-    pretax: document.getElementById('checkout-pretax'),
     tax: document.getElementById('checkout-tax'),
     final: document.getElementById('checkout-final-total')
   };
 
   if (els.subtotal) els.subtotal.innerText = `$${subtotal}`;
   if (els.shipping) els.shipping.innerText = `$${shipping}`;
-  if (els.pretax) els.pretax.innerText = `$${totalPreTax}`;
-  if (els.tax) els.tax.innerText = `$${productTax}`;
+  if (els.tax) els.tax.innerText = `$${taxAmount}`;
   if (els.final) els.final.innerText = `$${finalAmount}`;
 };
 
@@ -497,7 +486,7 @@ window.submitOrder = async function() {
   submitButton.innerText = '訂單處理中...';
 
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
-  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+  const totalAmount = currentCheckoutSubtotal + Math.round(currentCheckoutSubtotal * 0.05) + currentShippingFee;
   const deliverySummary = `[${tierInput.value === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
 
   const { error } = await supabase.from('orders').insert([{
@@ -815,7 +804,7 @@ window.submitOrder = async function() {
   submitButton.innerText = '訂單處理中...';
 
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
-  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+  const totalAmount = currentCheckoutSubtotal + Math.round(currentCheckoutSubtotal * 0.05) + currentShippingFee;
   const deliverySummary = `[${tierInput.value === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
 
   const { error } = await supabase.from('orders').insert([{

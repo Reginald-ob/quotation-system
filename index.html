@@ -158,23 +158,16 @@
       <!-- 結帳金額試算區塊 -->
       <div id="checkout-calc-rows" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
-          <span>商品小計</span>
+          <span>商品小計 (未稅)</span>
           <span id="checkout-subtotal" style="font-weight: 500;">$0</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
-          <span>運費</span>
-          <span id="checkout-shipping-fee" style="font-weight: 500;">$0</span>
-        </div>
-        
-        <div style="border-top: 1px dashed #ccc; margin: 10px 0;"></div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333;">
-          <span>銷售額 (未稅)</span>
-          <span id="checkout-pretax" style="font-weight: bold;">$0</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333;">
           <span>營業稅額 (5%)</span>
           <span id="checkout-tax" style="font-weight: bold;">$0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
+          <span>運費 (含稅)</span>
+          <span id="checkout-shipping-fee" style="font-weight: 500;">$0</span>
         </div>
         
         <div style="border-top: 2px solid #ee4d2d; margin: 10px 0;"></div>
@@ -183,10 +176,6 @@
           <span>總計金額 (含稅)</span>
           <span id="checkout-final-total">$0</span>
         </div>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 1.15em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;">
-        <span>應付總額:</span>
-        <span style="color: var(--primary-orange);">$<span id="checkout-final-total">0</span></span>
       </div>
       <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
     </div>
