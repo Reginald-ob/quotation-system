@@ -1900,7 +1900,7 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 (網頁 HTML 解析版) =================
+// ================= 台灣銀行 CNY 即期匯率抓取模組 (含波動警示機制) =================
 window.fetchTaiwanBankCNYRate = async function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
@@ -1915,34 +1915,64 @@ window.fetchTaiwanBankCNYRate = async function() {
     if (!response.ok) throw new Error('匯率網頁回應異常');
     
     const htmlText = await response.text();
-    
-    // 將 HTML 純文字轉為虛擬 DOM 結構，方便精準定位
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, 'text/html');
     
     let cnySpotSellRate = null;
-    
-    // 選取表格中的所有資料列
     const rows = doc.querySelectorAll('table tbody tr');
     
     for (const row of rows) {
-      // 尋找包含「人民幣 (CNY)」的資料列
       const currencyName = row.innerText || '';
       if (currencyName.includes('CNY') || currencyName.includes('人民幣')) {
-        
-        // 透過特有屬性 data-table 精準鎖定「本行即期賣出」的 <td> 標籤
         const spotSellTd = row.querySelector('td[data-table="本行即期賣出"]');
-        
         if (spotSellTd) {
           cnySpotSellRate = spotSellTd.innerText.trim();
         }
-        break; // 找到即跳出迴圈
+        break;
       }
     }
 
-    // 檢查抓取到的數值是否正常 (確保是數字格式)
-    if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
-      displayEl.innerText = cnySpotSellRate;
+    // 檢查抓取到的數值是否正常
+    const currentRate = parseFloat(cnySpotSellRate);
+    if (!isNaN(currentRate)) {
+      displayEl.innerText = currentRate;
+
+      // --- 波動警示判定邏輯 ---
+      const BASE_RATE = 4.9;
+      // 計算波動百分比 (正數為上漲，負數為下跌)
+      const fluctuationPercent = ((currentRate - BASE_RATE) / BASE_RATE) * 100;
+      const absFluctuation = Math.abs(fluctuationPercent);
+
+      // 抓取 DOM 中的 Tooltip 元素
+      // 依賴於 HTML 結構：.rate-tooltip 內的 span 為圖標，.tooltip-text 為說明區塊
+      const tooltipContainer = displayEl.nextElementSibling;
+      const tooltipIcon = tooltipContainer ? tooltipContainer.querySelector('span') : null;
+      const tooltipText = tooltipContainer ? tooltipContainer.querySelector('.tooltip-text') : null;
+
+      if (tooltipIcon && tooltipText) {
+        if (absFluctuation >= 3) {
+          // 波動 >= 3%，啟動紅色警示模式
+          const direction = fluctuationPercent > 0 ? '上漲' : '下跌';
+          tooltipIcon.innerText = '!';
+          tooltipIcon.classList.add('rate-warning-icon');
+          
+          tooltipText.classList.add('rate-warning-tooltip');
+          tooltipText.innerHTML = `
+            <strong style="font-size:1.1em;">⚠️ 匯率劇烈波動警示</strong><br>
+            目前匯率 <strong>${currentRate}</strong> 對比基準價 4.9<br>已<strong style="color:#ffdddd;">${direction} ${absFluctuation.toFixed(2)}%</strong>。<br>
+            <span style="display:block; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.3);">
+              因超過 ±3% 預警閾值並若穩定於此，平台可能近期啟動調價機制，請留意最新報價。
+            </span>`;
+        } else {
+          // 波動正常，恢復預設狀態
+          tooltipIcon.innerText = '?';
+          tooltipIcon.classList.remove('rate-warning-icon');
+          
+          tooltipText.classList.remove('rate-warning-tooltip');
+          tooltipText.innerHTML = '匯率波動超過 ±3% 至 ±5% 並穩定在該價格時，可能啟動調價機制。';
+        }
+      }
+
     } else {
       displayEl.innerText = '暫無報價';
     }

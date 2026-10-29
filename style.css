@@ -538,3 +538,27 @@ body {
   visibility: visible;
   opacity: 1;
 }
+
+/* ================= 匯率波動警示動畫 ================= */
+@keyframes pulse-danger {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.8); }
+  70% { box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* 警示狀態的圖示 (紅色 + 脈衝跳動) */
+.rate-warning-icon {
+  background-color: #dc3545 !important;
+  animation: pulse-danger 1.5s infinite;
+}
+
+/* 警示狀態的 Tooltip 氣泡框 (紅色) */
+.rate-warning-tooltip {
+  background-color: #dc3545 !important;
+  width: 250px !important;
+}
+
+/* 更改紅色氣泡框上方的小倒三角顏色 */
+.rate-warning-tooltip::after {
+  border-color: transparent transparent #dc3545 transparent !important;
+}
