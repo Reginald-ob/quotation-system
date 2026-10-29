@@ -154,25 +154,23 @@
       <p style="margin: 6px 0; font-size: 0.95em;"><strong>配送資訊：</strong><span id="readonly-delivery-info">-</span></p>
     </div>
 
-    <!-- 結帳金額計算區塊 -->
-    <div id="checkout-calc-rows" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin-top: 20px; text-align: right;">
-      <div style="margin-bottom: 5px; color: #555;">商品小計 (含稅): $<span id="checkout-subtotal">0</span></div>
-      <div style="margin-bottom: 5px; color: #555;">預估運費 (含稅): <span id="checkout-shipping-fee-display">$0</span></div>
-
-      <hr style="border: 0; border-top: 1px dashed #ccc; margin: 10px 0;">
-
-      <div style="margin-bottom: 5px; color: #333; font-size: 0.95em;">
-        銷售額 (未稅): $<strong id="checkout-sales-amount">0</strong>
+    <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-bottom: 20px; font-size: 0.95em;">
+      <div id="checkout-calc-rows">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>商品總金額:</span>
+          <span>$<strong id="checkout-subtotal">0</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>國內運費:</span>
+          <span id="checkout-shipping-fee-display" style="color: #28a745; font-weight: bold;">$38</span>
+        </div>
       </div>
-      <div style="margin-bottom: 5px; color: #333; font-size: 0.95em;">
-        營業稅額 (5%): $<strong id="checkout-tax-amount">0</strong>
+      <div style="display: flex; justify-content: space-between; font-size: 1.15em; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 8px;">
+        <span>應付總額:</span>
+        <span style="color: var(--primary-orange);">$<span id="checkout-final-total">0</span></span>
       </div>
-
-      <h3 style="margin: 10px 0 0 0; color: var(--primary-orange, #ee4d2d); font-size: 1.3em;">
-        含稅總金額: $<span id="checkout-final-total">0</span>
-      </h3>
+      <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
     </div>
-    <small id="fee-adjust-warn" style="display: none; color: #d9534f; margin-top: 4px;">* 此物流方案之最終運費與總額將由後台管理員核定改價後通知。</small>
 
     <button type="button" id="btn-submit-order" class="btn-orange" onclick="submitOrder()" style="width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px;">確認並送出訂單</button>
 
