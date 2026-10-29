@@ -318,6 +318,30 @@ let currentCheckoutSubtotal = 0;
 let currentShippingFee = 38;
 let currentPayingOrderId = null;
 
+// ================= 結帳金額計算與畫面渲染 =================
+window.updateCheckoutTotals = function() {
+  const subtotal = Number(currentCheckoutSubtotal) || 0;
+  const shipping = Number(currentShippingFee) || 0;
+
+  const preTaxAmount = subtotal + shipping;
+  const taxAmount = Math.round(preTaxAmount * 0.05);
+  const finalAmount = preTaxAmount + taxAmount;
+
+  const els = {
+    subtotal: document.getElementById('checkout-subtotal'),
+    shipping: document.getElementById('checkout-shipping-fee'),
+    pretax: document.getElementById('checkout-pretax'),
+    tax: document.getElementById('checkout-tax'),
+    final: document.getElementById('checkout-final-total')
+  };
+
+  if (els.subtotal) els.subtotal.innerText = `$${subtotal}`;
+  if (els.shipping) els.shipping.innerText = `$${shipping}`;
+  if (els.pretax) els.pretax.innerText = `$${preTaxAmount}`;
+  if (els.tax) els.tax.innerText = `$${taxAmount}`;
+  if (els.final) els.final.innerText = `$${finalAmount}`;
+};
+
 // 進入結帳頁面初始化
 window.openCheckoutView = function() {
   hideAllMainViews();
@@ -351,7 +375,7 @@ window.openCheckoutView = function() {
     }
   }
 
-  document.getElementById('checkout-subtotal').innerText = currentCheckoutSubtotal;
+  window.updateCheckoutTotals();
 
   const smallRadio = document.querySelector('input[name="shipping-tier"][value="small"]');
   if (smallRadio) smallRadio.checked = true;
@@ -381,30 +405,16 @@ window.handleShippingMethodChange = function() {
   const select = document.getElementById('shipping-method-select');
   const container = document.getElementById('dynamic-shipping-fields');
   const noticeElement = document.getElementById('shipping-notice-text');
-  const feeDisplay = document.getElementById('checkout-shipping-fee-display');
-  const finalTotal = document.getElementById('checkout-final-total');
   const warningElement = document.getElementById('fee-adjust-warn');
-  if (!tierInput || !select || !container || !noticeElement || !feeDisplay || !finalTotal || !warningElement) return;
+  if (!tierInput || !select || !container || !noticeElement || !warningElement) return;
 
   const methodConfig = LOGISTICS_CONFIG[tierInput.value].find(item => item.id === select.value);
   if (!methodConfig) return;
 
   noticeElement.innerText = `💡 ${methodConfig.notice}`;
   currentShippingFee = methodConfig.fee;
-  feeDisplay.innerText = methodConfig.fee > 0 ? `$${methodConfig.fee}` : '待後台核定';
   warningElement.style.display = methodConfig.fee > 0 ? 'none' : 'block';
-  // --- 稅額分離計算 ---
-  const calculatedTotal = currentCheckoutSubtotal + currentShippingFee;
-  const salesAmount = Math.round(calculatedTotal / 1.05); // 計算銷售額(未稅)，四捨五入
-  const taxAmount = calculatedTotal - salesAmount;        // 總額扣除未稅即為營業稅額
-
-  if (finalTotal) finalTotal.innerText = calculatedTotal;
-  
-  // 更新至畫面上
-  const salesEl = document.getElementById('checkout-sales-amount');
-  const taxEl = document.getElementById('checkout-tax-amount');
-  if (salesEl) salesEl.innerText = salesAmount;
-  if (taxEl) taxEl.innerText = taxAmount;
+  window.updateCheckoutTotals();
 
   if (methodConfig.type === 'cvs') {
     container.innerHTML = `
@@ -480,7 +490,9 @@ window.submitOrder = async function() {
   submitButton.innerText = '訂單處理中...';
 
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
-  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+  const preTaxAmount = currentCheckoutSubtotal + currentShippingFee;
+  const taxAmount = Math.round(preTaxAmount * 0.05);
+  const totalAmount = preTaxAmount + taxAmount; // 寫入資料庫的含稅總金額
   const deliverySummary = `[${tierInput.value === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
 
   const { error } = await supabase.from('orders').insert([{
@@ -798,7 +810,9 @@ window.submitOrder = async function() {
   submitButton.innerText = '訂單處理中...';
 
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
-  const totalAmount = currentCheckoutSubtotal + currentShippingFee;
+  const preTaxAmount = currentCheckoutSubtotal + currentShippingFee;
+  const taxAmount = Math.round(preTaxAmount * 0.05);
+  const totalAmount = preTaxAmount + taxAmount; // 寫入資料庫的含稅總金額
   const deliverySummary = `[${tierInput.value === 'small' ? '小材積' : '大材積'}] ${methodConfig.name} | 收件人: ${recipientName} (${recipientPhone}) | 資料: ${deliveryDetailText}`;
 
   const { error } = await supabase.from('orders').insert([{
