@@ -1899,3 +1899,50 @@ window.switchCategory = function(arg1, arg2) {
   
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
+
+// ================= 台灣銀行 CNY 即期匯率抓取模組 =================
+window.fetchTaiwanBankCNYRate = async function() {
+  const displayEl = document.getElementById('cny-rate-display');
+  if (!displayEl) return;
+
+  try {
+    displayEl.innerText = '讀取中...';
+    
+    // 使用 allorigins 解決前端跨網域 (CORS) 限制，直接請求台銀每日 CSV
+    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
+    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
+    
+    if (!response.ok) throw new Error('匯率 API 回應異常');
+    
+    const csvText = await response.text();
+    const lines = csvText.split('\n');
+    
+    let cnySpotSellRate = null;
+    
+    for (const line of lines) {
+      // 尋找包含人民幣 (CNY) 的資料列
+      if (line.includes('CNY')) {
+        const columns = line.split(',');
+        // 台銀 CSV 欄位定義: [0]幣別, [1]現金買入, [2]現金賣出, [3]即期買入, [4]即期賣出
+        cnySpotSellRate = columns[4] ? columns[4].trim() : null;
+        break;
+      }
+    }
+
+    // 檢查抓取到的數值是否正常
+    if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
+      displayEl.innerText = cnySpotSellRate;
+    } else {
+      displayEl.innerText = '暫無報價';
+    }
+
+  } catch (err) {
+    console.error('抓取 CNY 匯率失敗:', err);
+    displayEl.innerText = '抓取失敗';
+  }
+};
+
+// 綁定於網頁 DOM 結構載入完成後自動執行
+document.addEventListener('DOMContentLoaded', () => {
+  window.fetchTaiwanBankCNYRate();
+});

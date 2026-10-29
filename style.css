@@ -494,3 +494,47 @@ body {
   margin: 0 auto 15px auto !important;
   display: block !important;
 }
+
+/* ================= 匯率 Tooltips 樣式 ================= */
+.rate-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.rate-tooltip .tooltip-text {
+  visibility: hidden;
+  width: 220px;
+  background-color: #343a40;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 12px;
+  position: absolute;
+  z-index: 9999;
+  top: 130%; /* 顯示在問號正下方 */
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  font-size: 0.85em;
+  line-height: 1.4;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  pointer-events: none; /* 防止滑鼠干擾 */
+}
+
+/* 繪製 Tooltips 上方的黑色小倒三角 */
+.rate-tooltip .tooltip-text::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #343a40 transparent;
+}
+
+.rate-tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
