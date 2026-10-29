@@ -1906,7 +1906,7 @@ window.updateCNYRate = function() {
   if (!displayEl) return;
 
   // 💡 請在這裡手動輸入最新的 CNY 匯率
-  const currentRate = 5.08; // <--- 修改此數值即可更新全站匯率
+  const currentRate = 4.911; // <--- 修改此數值即可更新全站匯率
   
   const BASE_RATE = 4.9;    // 基準價 (無須變動)
 
