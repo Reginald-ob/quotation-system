@@ -393,7 +393,18 @@ window.handleShippingMethodChange = function() {
   currentShippingFee = methodConfig.fee;
   feeDisplay.innerText = methodConfig.fee > 0 ? `$${methodConfig.fee}` : '待後台核定';
   warningElement.style.display = methodConfig.fee > 0 ? 'none' : 'block';
-  finalTotal.innerText = currentCheckoutSubtotal + currentShippingFee;
+  // --- 稅額分離計算 ---
+  const calculatedTotal = currentCheckoutSubtotal + currentShippingFee;
+  const salesAmount = Math.round(calculatedTotal / 1.05); // 計算銷售額(未稅)，四捨五入
+  const taxAmount = calculatedTotal - salesAmount;        // 總額扣除未稅即為營業稅額
+
+  if (finalTotal) finalTotal.innerText = calculatedTotal;
+  
+  // 更新至畫面上
+  const salesEl = document.getElementById('checkout-sales-amount');
+  const taxEl = document.getElementById('checkout-tax-amount');
+  if (salesEl) salesEl.innerText = salesAmount;
+  if (taxEl) taxEl.innerText = taxAmount;
 
   if (methodConfig.type === 'cvs') {
     container.innerHTML = `
