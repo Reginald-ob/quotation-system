@@ -539,26 +539,25 @@ body {
   opacity: 1;
 }
 
-/* ================= 匯率波動警示動畫 ================= */
-@keyframes pulse-danger {
-  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.8); }
-  70% { box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+/* ================= 匯率波動警示動畫與樣式 ================= */
+/* 呼吸燈動畫 */
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
   100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
 
-/* 警示狀態的圖示 (紅色 + 脈衝跳動) */
-.rate-warning-icon {
+/* 觸發警告時的問號圖示 */
+.tooltip-icon.warning {
   background-color: #dc3545 !important;
-  animation: pulse-danger 1.5s infinite;
+  animation: pulse-red 1.5s infinite;
 }
 
-/* 警示狀態的 Tooltip 氣泡框 (紅色) */
-.rate-warning-tooltip {
+/* 觸發警告時的提示框背景與箭頭 */
+.rate-tooltip .tooltip-text.warning {
   background-color: #dc3545 !important;
-  width: 250px !important;
+  width: 240px; /* 警告文字較多，稍微加寬 */
 }
-
-/* 更改紅色氣泡框上方的小倒三角顏色 */
-.rate-warning-tooltip::after {
+.rate-tooltip .tooltip-text.warning::after {
   border-color: transparent transparent #dc3545 transparent !important;
 }

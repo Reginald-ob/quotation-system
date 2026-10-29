@@ -21,16 +21,16 @@
       <div class="header-brand">
         <h2>嚴選優質工廠貨源專區</h2>
         <span id="user-info" class="user-info"></span>
-        <!-- 將此段貼在 id="user-info" 的區塊旁邊 -->
+        <!-- 匯率顯示區塊 (加入動態 ID) -->
         <div style="display: inline-flex; align-items: center; margin-left: 15px; font-size: 0.9em; background: #f8f9fa; padding: 4px 12px; border-radius: 20px; border: 1px solid #dee2e6; vertical-align: middle;">
-          <span style="color: #6c757d; margin-right: 6px; font-weight: 500;">CNY 即期賣出:</span>
+          <span style="color: #6c757d; margin-right: 6px; font-weight: 500;">CNY 即期:</span>
           <strong id="cny-rate-display" style="color: #ee4d2d;">--</strong>
           
           <!-- Tooltip 結構 -->
           <div class="rate-tooltip" style="margin-left: 8px;">
-            <span style="display: inline-block; width: 16px; height: 16px; background: #adb5bd; color: white; border-radius: 50%; text-align: center; line-height: 16px; font-size: 12px; font-weight: bold; cursor: help;">?</span>
-            <div class="tooltip-text">
-              匯率波動超過 ±3% 至 ±5% 並穩定在該價格時，可能啟動調價機制。
+            <span id="cny-tooltip-icon" class="tooltip-icon" style="display: inline-block; width: 16px; height: 16px; background: #adb5bd; color: white; border-radius: 50%; text-align: center; line-height: 16px; font-size: 12px; font-weight: bold; cursor: help;">?</span>
+            <div id="cny-tooltip-text" class="tooltip-text">
+              以 4.9 為基準，當匯率波動超過 ±3% 至 ±5% 並穩定在該價格時，可能啟動調價機制。
             </div>
           </div>
         </div>
