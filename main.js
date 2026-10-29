@@ -108,10 +108,46 @@ async function loadUserProfile(user) {
   }
 }
 
+// 獨立抽離渲染邏輯，讓 API 請求與本地緩存都能共用
+function renderProductGridAfterLoad(grid) {
+  grid.innerHTML = ''; // 清空載入提示
+  
+  Object.values(allProducts).forEach(product => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.onclick = () => openModal(product.id);
+    card.innerHTML = `
+      <img src="${product.variants[0].image}" alt="${product.name}" loading="lazy">
+      <div class="info">
+        <p class="title">${product.name}</p>
+        <p class="price">$${product.minPrice}</p>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// 載入商品分類 (加入 Session Storage 30 分鐘快取機制)
 window.loadCategory = async function(categorySheet) {
   const grid = document.getElementById('product-grid');
   grid.innerHTML = '<p style="padding: 20px;">載入商品中，請稍候...</p>';
 
+  // --- 緩存判定邏輯 ---
+  const cacheKey = `zera_cache_${categorySheet}`;
+  const cacheTimeKey = `zera_cache_time_${categorySheet}`;
+  const CACHE_TTL = 1000 * 60 * 30; // 緩存有效期：30 分鐘
+
+  const cachedData = sessionStorage.getItem(cacheKey);
+  const cachedTime = sessionStorage.getItem(cacheTimeKey);
+
+  // 若快取存在，且未超過 30 分鐘，直接從本地記憶體拿資料 (秒開)
+  if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime, 10) < CACHE_TTL)) {
+    allProducts = JSON.parse(cachedData);
+    renderProductGridAfterLoad(grid);
+    return;
+  }
+
+  // --- 若無快取或已過期，則向 Google Sheets API 請求資料 ---
   try {
     const response = await fetch(`/api/getProducts?sheet=${encodeURIComponent(categorySheet)}`);
     const data = await response.json();
@@ -127,26 +163,12 @@ window.loadCategory = async function(categorySheet) {
     }
 
     allProducts = data;
-    grid.innerHTML = ''; // 清空 loading 提示
 
-    // --- 這裡就是修改一的蝦皮風格網格渲染 ---
-    Object.values(allProducts).forEach(product => {
-      const card = document.createElement('div');
-      card.className = 'product-card';
-      
-      // 點擊整張卡片喚出彈窗 (傳入 product.id)
-      card.onclick = () => openModal(product.id);
-      
-      // 僅顯示圖片、品名、最低起步價
-      card.innerHTML = `
-        <img src="${product.variants[0].image}" alt="${product.name}" loading="lazy">
-        <div class="info">
-          <p class="title">${product.name}</p>
-          <p class="price">$${product.minPrice}</p>
-        </div>
-      `;
-      grid.appendChild(card);
-    });
+    // 將新抓到的資料寫入本地緩存
+    sessionStorage.setItem(cacheKey, JSON.stringify(data));
+    sessionStorage.setItem(cacheTimeKey, Date.now().toString());
+
+    renderProductGridAfterLoad(grid);
 
   } catch (err) {
     console.error("API 請求失敗", err);
@@ -1212,8 +1234,7 @@ let currentModalProduct = null;
 let currentSelectedVariant = null;
 let currentModalQty = 0; // 預設值改為 0
 
-// 開啟彈窗
-// 開啟彈窗 (含空白屬性自動過濾)
+// 開啟彈窗 (含現貨庫存判斷與空白屬性自動過濾)
 window.openModal = function(productId) {
   currentModalProduct = allProducts[productId];
   currentSelectedVariant = currentModalProduct.variants[0];
@@ -1224,8 +1245,15 @@ window.openModal = function(productId) {
   document.getElementById('modal-qty-input').value = currentModalQty;
   document.getElementById('product-modal').style.display = 'flex';
 
+  // --- [新增] 判斷現貨庫存是否大於 0，若 > 0 才顯示綠色高亮標籤 ---
+  const stockVal = parseInt(currentModalProduct.stock, 10);
+  const stockDisplay = (!isNaN(stockVal) && stockVal > 0) 
+    ? `<span style="color: #28a745; background: #e6f4ea; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.95em;">📦 本地現貨 ${stockVal} 件</span>` 
+    : ''; // 小於等於 0 或是空白，則直接回傳空字串 (後續會被過濾隱藏)
+
   // 定義欲顯示的額外欄位與標籤名稱
   const attributeDefinitions = [
+    { label: '現貨庫存', value: stockDisplay }, // 💡 插入於最頂部
     { label: '毛重 (kg)', value: currentModalProduct.weight },
     { label: '材質', value: currentModalProduct.material },
     { label: '尺寸', value: currentModalProduct.dimensions },
@@ -1234,14 +1262,14 @@ window.openModal = function(productId) {
     { label: '建議物流方式', value: currentModalProduct.shippingMethod }
   ];
 
-  // 僅過濾出內容非空白的項目
-  const validAttributes = attributeDefinitions.filter(item => item.value && item.value.trim() !== '');
+  // 僅過濾出內容非空白的項目 (若 stockDisplay 為空，就不會被渲染出來)
+  const validAttributes = attributeDefinitions.filter(item => item.value && String(item.value).trim() !== '');
   const attrContainer = document.getElementById('modal-attributes');
 
   if (validAttributes.length > 0) {
     attrContainer.style.display = 'block';
     attrContainer.innerHTML = validAttributes.map(item => `
-      <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e2e8f0;">
         <span style="color: #64748b; font-weight: 500;">${item.label}</span>
         <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 65%; word-break: break-all;">${item.value}</span>
       </div>
