@@ -1900,7 +1900,7 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 (含波動警示機制) =================
+// ================= 台灣銀行 CNY 即期匯率抓取模組 (雙代理備援 + 波動警示) =================
 window.fetchTaiwanBankCNYRate = async function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
@@ -1908,13 +1908,24 @@ window.fetchTaiwanBankCNYRate = async function() {
   try {
     displayEl.innerText = '讀取中...';
     
-    // 透過代理抓取台銀官方匯率網頁 HTML
-    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt?Lang=zh-TW');
-    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
+    // 目標網址 (加上隨機時間戳，強迫破除代理伺服器的舊快取)
+    const targetUrl = `https://rate.bot.com.tw/xrt?Lang=zh-TW&_t=${Date.now()}`;
+    let htmlText = '';
+
+    // 【防呆備援機制】若主代理伺服器掛掉，自動無縫切換備用代理
+    try {
+      // 優先嘗試代理 A (corsproxy)
+      const res1 = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+      if (!res1.ok) throw new Error('代理 A 狀態異常');
+      htmlText = await res1.text();
+    } catch (err1) {
+      console.warn('主代理連線失敗，自動切換備用代理...', err1);
+      // 備用嘗試代理 B (allorigins)
+      const res2 = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+      if (!res2.ok) throw new Error('備用代理亦無法連線');
+      htmlText = await res2.text();
+    }
     
-    if (!response.ok) throw new Error('匯率網頁回應異常');
-    
-    const htmlText = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, 'text/html');
     
@@ -1923,6 +1934,7 @@ window.fetchTaiwanBankCNYRate = async function() {
     
     for (const row of rows) {
       const currencyName = row.innerText || '';
+      // 鎖定人民幣 (CNY)
       if (currencyName.includes('CNY') || currencyName.includes('人民幣')) {
         const spotSellTd = row.querySelector('td[data-table="本行即期賣出"]');
         if (spotSellTd) {
@@ -1932,19 +1944,17 @@ window.fetchTaiwanBankCNYRate = async function() {
       }
     }
 
-    // 檢查抓取到的數值是否正常
+    // 檢查數值是否成功解析
     const currentRate = parseFloat(cnySpotSellRate);
     if (!isNaN(currentRate)) {
       displayEl.innerText = currentRate;
 
       // --- 波動警示判定邏輯 ---
-      const BASE_RATE = 4.9;
-      // 計算波動百分比 (正數為上漲，負數為下跌)
+      const BASE_RATE = 4.9; 
       const fluctuationPercent = ((currentRate - BASE_RATE) / BASE_RATE) * 100;
       const absFluctuation = Math.abs(fluctuationPercent);
 
       // 抓取 DOM 中的 Tooltip 元素
-      // 依賴於 HTML 結構：.rate-tooltip 內的 span 為圖標，.tooltip-text 為說明區塊
       const tooltipContainer = displayEl.nextElementSibling;
       const tooltipIcon = tooltipContainer ? tooltipContainer.querySelector('span') : null;
       const tooltipText = tooltipContainer ? tooltipContainer.querySelector('.tooltip-text') : null;
@@ -1978,7 +1988,7 @@ window.fetchTaiwanBankCNYRate = async function() {
     }
 
   } catch (err) {
-    console.error('抓取 CNY 匯率失敗:', err);
+    console.error('抓取 CNY 匯率失敗詳細原因:', err);
     displayEl.innerText = '抓取失敗';
   }
 };
