@@ -1900,19 +1900,30 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 =================
+// ================= 台灣銀行 CNY 即期匯率抓取模組 (高穩定備援版) =================
 window.fetchTaiwanBankCNYRate = async function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
 
   try {
     displayEl.innerText = '讀取中...';
-    
-    // 使用 allorigins 解決前端跨網域 (CORS) 限制，直接請求台銀每日 CSV
-    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt/flcsv/0/day');
-    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
-    
-    if (!response.ok) throw new Error('匯率 API 回應異常');
+    const targetUrl = 'https://rate.bot.com.tw/xrt/flcsv/0/day';
+    let response;
+
+    // 💡 實作雙重代理備援：若 A 伺服器因頻繁刷新被阻擋，自動切換至 B 伺服器
+    try {
+      // 方案 A: CodeTabs 代理
+      response = await fetch(`https://api.codetabs.com/v1/proxy?quest=${targetUrl}`);
+      if (!response.ok) throw new Error('Proxy A Failed');
+    } catch (e) {
+      // 方案 B: AllOrigins 代理 (加上時間戳強制抓取最新資料)
+      const backupUrl = encodeURIComponent(`${targetUrl}?t=${Date.now()}`);
+      response = await fetch(`https://api.allorigins.win/raw?url=${backupUrl}`);
+    }
+
+    if (!response || !response.ok) {
+      throw new Error('代理伺服器回應異常');
+    }
     
     const csvText = await response.text();
     const lines = csvText.split('\n');
@@ -1920,18 +1931,18 @@ window.fetchTaiwanBankCNYRate = async function() {
     let cnySpotSellRate = null;
     
     for (const line of lines) {
-      // 尋找包含人民幣 (CNY) 的資料列
+      // 使用 includes 避免不可見字元干擾
       if (line.includes('CNY')) {
         const columns = line.split(',');
-        // 台銀 CSV 欄位定義
+        // 台灣銀行 CSV 實際欄位排序：
+        // [0]幣別代碼, [1]幣別中文, [2]現金買入, [3]現金賣出, [4]即期買入, [5]即期賣出
         cnySpotSellRate = columns[5] ? columns[5].trim() : null;
         break;
       }
     }
 
-    // 檢查抓取到的數值是否正常
     if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
-      displayEl.innerText = cnySpotSellRate;
+      displayEl.innerText = cnySpotSellRate; // 正確顯示即期賣出 (例如 4.911)
     } else {
       displayEl.innerText = '暫無報價';
     }
