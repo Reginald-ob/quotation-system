@@ -1923,8 +1923,8 @@ window.fetchTaiwanBankCNYRate = async function() {
       // 尋找包含人民幣 (CNY) 的資料列
       if (line.includes('CNY')) {
         const columns = line.split(',');
-        // 台銀 CSV 欄位定義: [0]幣別, [1]現金買入, [2]現金賣出, [3]即期買入, [4]即期賣出
-        cnySpotSellRate = columns[4] ? columns[4].trim() : null;
+        // 台銀 CSV 欄位定義
+        cnySpotSellRate = columns[5] ? columns[5].trim() : null;
         break;
       }
     }
