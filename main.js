@@ -1900,49 +1900,49 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 (高穩定備援版) =================
+// ================= 台灣銀行 CNY 即期匯率抓取模組 (網頁 HTML 解析版) =================
 window.fetchTaiwanBankCNYRate = async function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
 
   try {
     displayEl.innerText = '讀取中...';
-    const targetUrl = 'https://rate.bot.com.tw/xrt/flcsv/0/day';
-    let response;
-
-    // 💡 實作雙重代理備援：若 A 伺服器因頻繁刷新被阻擋，自動切換至 B 伺服器
-    try {
-      // 方案 A: CodeTabs 代理
-      response = await fetch(`https://api.codetabs.com/v1/proxy?quest=${targetUrl}`);
-      if (!response.ok) throw new Error('Proxy A Failed');
-    } catch (e) {
-      // 方案 B: AllOrigins 代理 (加上時間戳強制抓取最新資料)
-      const backupUrl = encodeURIComponent(`${targetUrl}?t=${Date.now()}`);
-      response = await fetch(`https://api.allorigins.win/raw?url=${backupUrl}`);
-    }
-
-    if (!response || !response.ok) {
-      throw new Error('代理伺服器回應異常');
-    }
     
-    const csvText = await response.text();
-    const lines = csvText.split('\n');
+    // 透過代理抓取台銀官方匯率網頁 HTML
+    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt?Lang=zh-TW');
+    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
+    
+    if (!response.ok) throw new Error('匯率網頁回應異常');
+    
+    const htmlText = await response.text();
+    
+    // 將 HTML 純文字轉為虛擬 DOM 結構，方便精準定位
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
     
     let cnySpotSellRate = null;
     
-    for (const line of lines) {
-      // 使用 includes 避免不可見字元干擾
-      if (line.includes('CNY')) {
-        const columns = line.split(',');
-        // 台灣銀行 CSV 實際欄位排序：
-        // [0]幣別代碼, [1]幣別中文, [2]現金買入, [3]現金賣出, [4]即期買入, [5]即期賣出
-        cnySpotSellRate = columns[5] ? columns[5].trim() : null;
-        break;
+    // 選取表格中的所有資料列
+    const rows = doc.querySelectorAll('table tbody tr');
+    
+    for (const row of rows) {
+      // 尋找包含「人民幣 (CNY)」的資料列
+      const currencyName = row.innerText || '';
+      if (currencyName.includes('CNY') || currencyName.includes('人民幣')) {
+        
+        // 透過特有屬性 data-table 精準鎖定「本行即期賣出」的 <td> 標籤
+        const spotSellTd = row.querySelector('td[data-table="本行即期賣出"]');
+        
+        if (spotSellTd) {
+          cnySpotSellRate = spotSellTd.innerText.trim();
+        }
+        break; // 找到即跳出迴圈
       }
     }
 
+    // 檢查抓取到的數值是否正常 (確保是數字格式)
     if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
-      displayEl.innerText = cnySpotSellRate; // 正確顯示即期賣出 (例如 4.911)
+      displayEl.innerText = cnySpotSellRate;
     } else {
       displayEl.innerText = '暫無報價';
     }
@@ -1955,5 +1955,7 @@ window.fetchTaiwanBankCNYRate = async function() {
 
 // 綁定於網頁 DOM 結構載入完成後自動執行
 document.addEventListener('DOMContentLoaded', () => {
-  window.fetchTaiwanBankCNYRate();
+  if (window.fetchTaiwanBankCNYRate) {
+    window.fetchTaiwanBankCNYRate();
+  }
 });
