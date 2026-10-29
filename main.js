@@ -317,6 +317,132 @@ const LOGISTICS_CONFIG = {
 let currentCheckoutSubtotal = 0;
 let currentShippingFee = 38;
 let currentPayingOrderId = null;
+const checkoutStoreDataCache = new Map();
+
+async function loadCheckoutStores(provider) {
+  const dataFile = provider === 'family' ? 'f_data.json' : 's_data.json';
+  if (!checkoutStoreDataCache.has(dataFile)) {
+    const dataPromise = fetch(new URL(dataFile, import.meta.url))
+      .then(response => {
+        if (!response.ok) throw new Error(`門市資料載入失敗 (${response.status})`);
+        return response.json();
+      })
+      .then(stores => {
+        if (!Array.isArray(stores)) throw new Error('門市資料格式不正確');
+        return stores;
+      })
+      .catch(error => {
+        checkoutStoreDataCache.delete(dataFile);
+        throw error;
+      });
+    checkoutStoreDataCache.set(dataFile, dataPromise);
+  }
+  return checkoutStoreDataCache.get(dataFile);
+}
+
+function renderCheckoutStoreSearch(container, provider) {
+  container.innerHTML = `
+    <div class="checkout-store-search">
+      <label for="checkout-store-keyword">依地址、行政區或店名搜尋門市</label>
+      <div class="checkout-store-search-controls">
+        <input type="search" id="checkout-store-keyword" placeholder="例如：板橋區懷德街" autocomplete="street-address">
+        <button type="button" id="checkout-store-search-btn" class="btn-orange">搜尋門市</button>
+      </div>
+      <p id="checkout-store-search-status" class="checkout-store-search-status" role="status" aria-live="polite"></p>
+      <div id="checkout-store-results" class="checkout-store-results"></div>
+      <div id="checkout-store-selected" class="checkout-store-selected" hidden>
+        <strong>已選擇門市</strong>
+        <span id="checkout-store-selected-name"></span>
+        <span id="checkout-store-selected-address"></span>
+      </div>
+      <label for="delivery-store">取件門市 (店名與店號)</label>
+      <input type="text" id="delivery-store" required readonly placeholder="請搜尋並點選門市">
+    </div>
+  `;
+
+  const keywordInput = container.querySelector('#checkout-store-keyword');
+  const searchButton = container.querySelector('#checkout-store-search-btn');
+  const search = () => searchCheckoutStores(provider, keywordInput, container);
+  searchButton.addEventListener('click', search);
+  keywordInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      search();
+    }
+  });
+}
+
+async function searchCheckoutStores(provider, keywordInput, container) {
+  const results = container.querySelector('#checkout-store-results');
+  const status = container.querySelector('#checkout-store-search-status');
+  const searchButton = container.querySelector('#checkout-store-search-btn');
+  if (!results || !status || !searchButton) return;
+
+  const tokens = keywordInput.value.trim().toLocaleLowerCase('zh-TW').split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    status.textContent = '請輸入地址、行政區或店名關鍵字。';
+    results.replaceChildren();
+    return;
+  }
+
+  status.textContent = '正在載入並搜尋門市...';
+  results.replaceChildren();
+  searchButton.disabled = true;
+
+  try {
+    const stores = await loadCheckoutStores(provider);
+    if (!results.isConnected) return;
+
+    const matches = stores.filter(store => {
+      const searchableText = [
+        store.name,
+        store.id,
+        store.city,
+        store.area,
+        store.road,
+        store.address
+      ].filter(Boolean).join(' ').toLocaleLowerCase('zh-TW').replace(/\s+/g, '');
+      return tokens.every(token => searchableText.includes(token.replace(/\s+/g, '')));
+    });
+
+    const maxResults = 30;
+    matches.slice(0, maxResults).forEach(store => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'checkout-store-result';
+
+      const name = document.createElement('strong');
+      name.textContent = `${store.name} (${store.id})`;
+      const address = document.createElement('span');
+      address.textContent = store.address || [store.city, store.area, store.road].filter(Boolean).join('');
+      option.append(name, address);
+
+      option.addEventListener('click', () => {
+        const storeInput = container.querySelector('#delivery-store');
+        const selected = container.querySelector('#checkout-store-selected');
+        const selectedName = container.querySelector('#checkout-store-selected-name');
+        const selectedAddress = container.querySelector('#checkout-store-selected-address');
+        if (!storeInput || !selected || !selectedName || !selectedAddress) return;
+
+        storeInput.value = `${store.name} (${store.id})`;
+        selectedName.textContent = `${store.name} (${store.id})`;
+        selectedAddress.textContent = address.textContent;
+        selected.hidden = false;
+        status.textContent = '門市已選擇。';
+      });
+      results.appendChild(option);
+    });
+
+    status.textContent = matches.length === 0
+      ? '找不到符合條件的門市，請調整關鍵字再試一次。'
+      : `找到 ${matches.length} 間門市${matches.length > maxResults ? `，僅顯示前 ${maxResults} 間` : ''}。`;
+  } catch (error) {
+    console.error('搜尋超商門市失敗:', error);
+    status.textContent = '門市資料載入失敗，請確認網路連線後重試。';
+  } finally {
+    if (searchButton.isConnected) searchButton.disabled = false;
+  }
+}
 
 // ================= 結帳金額計算與畫面渲染 =================
 window.updateCheckoutTotals = function() {
@@ -413,12 +539,7 @@ window.handleShippingMethodChange = function() {
   window.updateCheckoutTotals();
 
   if (methodConfig.type === 'cvs') {
-    container.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <label style="font-weight: bold; font-size: 0.88em; color: #333;">取件超商門市名稱與店號 *</label>
-        <input type="text" id="delivery-store" required placeholder="例：鑫泰門市 (123456)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-    `;
+    renderCheckoutStoreSearch(container, methodConfig.id === 'family' ? 'family' : 'sevenEleven');
   } else if (methodConfig.type === 'post_station') {
     container.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">

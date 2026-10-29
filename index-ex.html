@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZERA | Premium Pet Lifestyle</title>
+    
+    <!-- Tailwind CSS (CDN 開發版) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zera: {
+                            black: '#0A0A09',    
+                            tan: '#4A3728',      
+                            charcoal: '#1A1714', 
+                            cream: '#E5DFD9'     
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Cinzel', 'serif'],
+                        sans: ['Noto Serif TC', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- 獨立的 CSS 檔案 -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 您的獨立 JS 檔案 (需放在 Supabase SDK 之後) -->
+    <script src="main.js"></script>
+</head>
+</head>
+<body class="bg-zera-cream text-zera-black font-sans tracking-wide relative">
+
+<!-- 全域載入動畫 -->
+    <div id="global-loader">
+        <div class="loader">
+            <div class="circle"></div><div class="circle"></div>
+            <div class="circle"></div><div class="circle"></div>
+        </div>
+    </div>
+
+    <!-- 全域導覽列 -->
+    <nav class="sticky top-0 z-50 bg-zera-black text-zera-cream border-b border-zera-tan/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <!-- 綁定 data-action 用於 JS 事件監聽，取代 inline onclick -->
+                <button data-action="toggle-mobile-menu" class="md:hidden p-2 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+                <div class="flex items-center gap-4 cursor-pointer" data-view-target="home-view">
+                    <img src="https://pub-30ed009176fe4786a7b9646420668657.r2.dev/PicList2026/06/adcf35f35dd57f83967de6db35dc279e.webp" alt="ZERA Logo" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover drop-shadow-sm">
+                    <h1 class="font-serif text-xl tracking-widest hidden sm:block">ZERA</h1>
+                </div>
+            </div>
+            
+            <div class="hidden md:flex items-center gap-4">
+                <select id="lang-switch" class="bg-transparent text-sm border border-zera-tan/30 rounded-full px-3 py-1 text-zera-cream focus:outline-none cursor-pointer">
+                    <option value="zh-TW" class="text-black">中文</option>
+                    <option value="en-US" class="text-black">EN</option>
+                </select>
+                <button data-view-target="member-view" class="text-sm border border-zera-tan/50 px-5 py-2 rounded-full hover:bg-zera-tan transition">會員中心</button>
+                <button data-view-target="cart-view" class="inline-block p-2 border border-zera-tan/50 rounded-full hover:bg-zera-tan transition relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <!-- 購物車數量標籤預留 -->
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-zera-tan text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+        <div class="hidden md:flex justify-center gap-12 py-3 bg-zera-charcoal text-xs uppercase tracking-widest border-t border-zera-tan/20 text-zera-cream/80">
+            <a href="#brand-story" data-i18n="nav_brand" class="hover:text-zera-tan transition">品牌美學</a>
+            <a href="#latest-news" data-i18n="nav_news" class="hover:text-zera-tan transition">最新消息</a>
+            <a href="#product-display" data-i18n="nav_products" class="hover:text-zera-tan transition">探索系列</a>
+            <a href="#bespoke-service" data-i18n="nav_delivery" class="hover:text-zera-tan transition">大型商品預約配送</a>
+            <a href="#contact-us" data-i18n="nav_contact" class="hover:text-zera-tan transition">聯絡我們</a>
+        </div>
+    </nav>
+
+    <!-- 手機版選單 -->
+    <div id="mobile-menu" class="fixed top-20 left-0 hidden md:hidden bg-zera-black text-zera-cream p-4 space-y-4 shadow-lg w-full z-[100] border-b border-zera-tan/30">        <a href="#brand-story" data-action="close-mobile-menu" class="block w-full text-left py-2 border-b border-zera-tan/20">品牌美學</a>
+        <a href="#latest-news" data-action="close-mobile-menu" class="block w-full text-left py-2 border-b border-zera-tan/20">最新消息</a>
+        <a href="#product-display" data-action="close-mobile-menu" class="block w-full text-left py-2 border-b border-zera-tan/20">探索系列</a>
+        <a href="#bespoke-service" data-action="close-mobile-menu" class="block w-full text-left py-2 border-b border-zera-tan/20">預約配送</a>
+        <button data-view-target="member-view" data-action="close-mobile-menu" class="block w-full text-center py-2 bg-zera-tan rounded-full mt-4">會員中心</button>
+    </div>
+
+    <!-- SPA 視圖容器區塊 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-8 py-12">
+        
+        <!-- 視圖 1: 首頁 (預設顯示) -->
+        <div id="home-view" class="view-section block">
+            <section id="brand-story" class="mb-20 grid md:grid-cols-2 gap-12 items-center scroll-mt-24">
+                <div class="space-y-6">
+                    <h2 data-i18n="hero_title" class="font-serif text-4xl sm:text-5xl leading-tight">為您的高貴夥伴<br><span class="text-zera-tan">打造極致生活</span></h2>
+                    <p data-i18n="hero_desc" class="text-zera-black/70 text-lg italic">ZERA 融匯杜賓之堅毅與邊牧之靈動，以極致美學，為您的摯愛寫下溫潤生活的篇章。</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- 套用 PRD 規範：aspect-square (1/1) 與 object-contain -->
+                    <div class="w-full rounded-2xl overflow-hidden bg-white border border-zera-tan/10">
+                        <img src="https://pub-30ed009176fe4786a7b9646420668657.r2.dev/PicList2026/06/77f7cf62609ed76a6a33339c107ab693.webp" class="w-full h-full aspect-square object-contain opacity-90" alt="Pet Lifestyle 1">
+                    </div>
+                    <div class="w-full rounded-2xl overflow-hidden bg-white border border-zera-tan/10 mt-8">
+                        <img src="https://pub-30ed009176fe4786a7b9646420668657.r2.dev/PicList2026/06/b6fb390c9e6c965fb4646d38de1fa393.webp" class="w-full h-full aspect-square object-contain opacity-90" alt="Pet Lifestyle 2">
+                    </div>
+                </div>
+            </section>
+
+            <section id="latest-news" class="mb-20 border-t border-zera-tan/20 pt-12 scroll-mt-24">
+                <h3 data-i18n="section_news_title" class="font-serif text-2xl tracking-widest text-center mb-8">LATEST NEWS / 最新消息</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-zera-tan/10 shadow-sm">
+                        <span class="text-xs text-zera-tan font-serif tracking-wider block mb-2">2026.06.09</span>
+                        <h4 data-i18n="news_1_title" class="font-bold text-sm mb-2">四季通用機能外出系列全新上市</h4>
+                        <p data-i18n="news_1_desc" class="text-xs text-zera-black/60 leading-relaxed">專為四季設計的防風防暴雨寵物雨衣，使用科技防水複合布料及塗層，現已開放預訂。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-zera-tan/10 shadow-sm">
+                        <span class="text-xs text-zera-tan font-serif tracking-wider block mb-2">2026.06.08</span>
+                        <h4 data-i18n="news_2_title" class="font-bold text-sm mb-2">ZERA會籍權益全面升級公告</h4>
+                        <p data-i18n="news_2_desc" class="text-xs text-zera-black/60 leading-relaxed">即日起，所有會員將享有超商取貨『無條件免運』優惠。待會員系統全面上線，過去累積的消費紀錄，對應的會員福利回饋均會無損延續。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-zera-tan/10 shadow-sm">
+                        <span class="text-xs text-zera-tan font-serif tracking-wider block mb-2">2026.05.20</span>
+                        <h4 data-i18n="news_3_title" class="font-bold text-sm mb-2">ZERA 品牌寵物用品預訂網站上線</h4>
+                        <p data-i18n="news_3_desc" class="text-xs text-zera-black/60 leading-relaxed">結合各大品管優良工廠，產品經過多次質量實測。僅接受預訂訂單，需等待10~15日。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="product-display" class="py-10 border-t border-zera-tan/20 scroll-mt-24">
+                <h2 data-i18n="section_products_title" class="font-serif text-2xl sm:text-3xl mb-8 text-zera-black tracking-widest uppercase text-center">探索精品系列</h2>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-white p-4 rounded-2xl border border-zera-tan/20 shadow-sm">
+                    <div class="w-full sm:w-1/2 relative">
+                        <!-- 注意這裡我們也幫 input 加上了 id 與 data-i18n-placeholder 方便 JS 辨識 -->
+                        <input type="text" id="searchInput" data-i18n-placeholder="search_placeholder" placeholder="搜尋當前分類產品名稱或描述..." class="w-full bg-zera-cream/30 border border-zera-tan/30 text-zera-black rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zera-tan transition">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <select id="sortSelect" class="w-full sm:w-auto bg-zera-cream/30 border border-zera-tan/30 text-zera-black rounded-full px-4 py-2 text-sm focus:outline-none focus:border-zera-tan transition cursor-pointer appearance-none">
+                            <option value="default" data-i18n="sort_default">預設順序</option>
+                            <option value="price-desc" data-i18n="sort_price_desc">價格：由高至低</option>
+                            <option value="price-asc" data-i18n="sort_price_asc">價格：由低至高</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 手機版維持2欄，電腦版維持4-5欄配置 -->
+                <div id="product-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                    <!-- 由 main.js 動態渲染 -->
+                </div>
+            </section>
+
+            <section id="bespoke-service" class="mb-20 border-t border-zera-tan/20 pt-12 scroll-mt-24 text-center max-w-2xl mx-auto space-y-6">
+                <h3 data-i18n="section_bespoke_title" class="font-serif text-2xl tracking-widest">大型商品配送 / 預約服務</h3>
+                <p data-i18n="bespoke_desc" class="text-sm text-zera-black/70 leading-relaxed italic">
+                    【大型特殊商品包裹】<br>
+                    ZERA 提供之部分商品，因體積重量超出一般快遞限制，或商品性質須經由冷鏈運輸、裝釘木架加強包裝等特殊服務，請聯繫客服為您安排專屬物流，為您爭取最划算運費。
+                </p>
+                <div>
+                    <a href="https://line.me/R/ti/p/@117erntk" target="_blank" data-i18n="btn_bespoke_reserve" class="inline-block font-serif text-xs tracking-widest border border-zera-tan bg-zera-tan text-zera-cream px-8 py-3 rounded-full hover:bg-transparent hover:text-zera-tan transition">前往諮詢預約</a>
+                </div>
+            </section>
+        </div>
+<!-- 視圖: 登入 / 註冊 (初始隱藏) -->
+        <div id="auth-view" class="view-section hidden animate-fade-in">
+            <!-- 卡片容器 -->
+            <div class="max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-xl flex flex-col md:flex-row min-h-[600px] border border-zera-tan/10">
+                
+                <!-- 左半邊：杜賓圖片與暗灰色遮罩 -->
+                <div class="relative w-full md:w-1/2 h-64 md:h-auto">
+                    <!-- 暗灰色遮罩 (opacity-60) -->
+                    <div class="absolute inset-0 bg-neutral-900/60 z-10"></div>
+                    <!-- 杜賓佔位圖 (建議後續替換為您專屬的高畫質圖檔) -->
+                    <img src="https://pub-30ed009176fe4786a7b9646420668657.r2.dev/PicList2026/06/77f7cf62609ed76a6a33339c107ab693.webp" alt="Premium Doberman" class="absolute inset-0 w-full h-full object-cover">
+                    <!-- 左側文案疊加 -->
+                    <div class="absolute inset-0 z-20 flex flex-col justify-center items-center text-white p-8 text-center opacity-90">
+                        <h3 class="font-serif text-4xl tracking-widest mb-4">ZERA</h3>
+                        <p class="font-serif text-xs tracking-widest uppercase">Premium Pet Lifestyle</p>
+                        <div class="w-10 h-[1px] bg-white/50 mt-6"></div>
+                    </div>
+                </div>
+
+                <!-- 右半邊：登入與註冊表單 -->
+                <!-- 背景色套用您指定的 #AE8F00，文字為白色 -->
+                <div class="w-full md:w-1/2 p-10 md:p-16 flex flex-col justify-center bg-[#3E2723] text-white">
+                    <div class="max-w-sm w-full mx-auto">
+                        <h2 id="auth-title" class="font-serif text-3xl tracking-widest mb-2 uppercase">Member Login</h2>
+                        <p id="auth-subtitle" class="text-xs opacity-80 mb-10 tracking-wider">歡迎回到 ZERA，請登入您的專屬帳戶</p>
+
+                        <form id="auth-form" class="space-y-6">
+                            <!-- Input 採用底線樣式，符合高級感 -->
+                            <div>
+                                <label class="block text-[10px] tracking-widest mb-1 font-serif uppercase opacity-80">Email</label>
+                                <input type="email" id="auth-email" required class="w-full bg-transparent border-b border-white/40 px-0 py-2 text-white placeholder-white/30 focus:outline-none focus:border-white transition-colors text-sm" placeholder="請輸入電子郵件">
+                            </div>
+                            <!-- 密碼輸入框 (加入密碼揭露按鈕) -->
+                            <div class="relative">
+                                <label class="block text-[10px] tracking-widest mb-1 font-serif uppercase opacity-80">Password</label>
+                                <input type="password" id="auth-password" required class="w-full bg-transparent border-b border-white/40 px-0 py-2 pr-10 text-white placeholder-white/30 focus:outline-none focus:border-white transition-colors text-sm" placeholder="請輸入密碼">
+                                <button type="button" id="toggle-password-btn" class="absolute right-0 bottom-2 text-white/50 hover:text-white transition-colors focus:outline-none">
+                                    <!-- 閉眼 Icon (預設) -->
+                                    <svg id="eye-closed-icon" class="w-5 h-5 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0l-3.41-3.41"></path></svg>
+                                    <!-- 睜眼 Icon (隱藏) -->
+                                    <svg id="eye-open-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                            </div>
+
+                            <!-- 註冊專用欄位 (預設隱藏) -->
+                            <div id="register-fields" class="hidden space-y-6 pt-2">
+                                <div>
+                                    <label class="block text-[10px] tracking-widest mb-1 font-serif uppercase opacity-80">Phone</label>
+                                    <input type="tel" id="auth-phone" class="w-full bg-transparent border-b border-white/40 px-0 py-2 text-white placeholder-white/30 focus:outline-none focus:border-white transition-colors text-sm" placeholder="請輸入手機號碼 (作為會員編號)">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] tracking-widest mb-1 font-serif uppercase opacity-80">Pet Type</label>
+                                    <select id="auth-pet-preference" class="w-full bg-transparent border-b border-white/40 px-0 py-2 text-white/70 focus:outline-none focus:border-white transition-colors text-sm appearance-none">
+                                        <option value="" disabled selected class="text-black">請選擇您的寵物夥伴</option>
+                                        <option value="狗派" class="text-black">狗派</option>
+                                        <option value="貓派" class="text-black">貓派</option>
+                                        <option value="貓狗雙全" class="text-black">貓狗雙全</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="forgot-password-wrap" class="flex justify-end pt-1">
+                                <a href="#" class="text-[10px] opacity-70 hover:opacity-100 transition-opacity tracking-widest">忘記密碼？</a>
+                            </div>
+
+                            <!-- 提交按鈕：背景色 #AE8F00 (與父容器同色)，加上白框線與 Hover 反轉效果 -->
+                            <button type="submit" id="auth-submit-btn" class="w-full mt-4 border border-white bg-[#795548] text-white hover:bg-white hover:text-[#AE8F00] font-serif tracking-widest py-3.5 rounded-full transition-all duration-300 text-xs uppercase relative overflow-hidden">
+                                Sign In
+                            </button>
+                        </form>
+
+                        <!-- 切換登入與註冊狀態 -->
+                        <div class="mt-10 text-center text-xs tracking-widest">
+                            <span id="auth-toggle-text" class="opacity-70">還沒有帳號嗎？</span>
+                            <button data-action="toggle-auth-mode" class="ml-2 font-bold hover:opacity-70 transition-opacity border-b border-white/50 pb-0.5">
+                                立即註冊
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- 視圖: 會員中心 (初始隱藏) -->
+        <div id="member-view" class="view-section hidden animate-fade-in">
+            
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h2 class="font-serif text-3xl tracking-widest text-zera-black uppercase">Member Center</h2>
+                <p class="text-zera-tan font-serif tracking-widest text-sm mt-2">尊榮會員中心</p>
+            </div>
+
+            <!-- 會員資訊總覽 (Dashboard Card) -->
+            <div class="bg-white rounded-3xl p-5 sm:p-8 md:p-10 border border-zera-tan/20 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 mb-12 relative overflow-hidden">
+                
+                <!-- 加上 w-full 確保排版佈局 -->
+                <div class="flex items-start gap-4 sm:gap-6 w-full md:w-auto">
+                    <!-- 會員頭像預設圖 (手機版微調縮小) -->
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-zera-cream flex items-center justify-center border border-zera-tan/30 shrink-0 mt-1">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-zera-tan/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    </div>
+                    
+                    <!-- ★ 加上 flex-1 與 min-w-0 是解決手機版超出邊界的關鍵 -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between md:justify-start gap-4 w-full mb-4">
+                            <h3 class="font-serif text-xl sm:text-2xl text-zera-black truncate">
+                                <span id="member-name-display">林貴賓</span> <span class="text-xs sm:text-sm font-sans text-zera-black/60 font-normal">先生</span>
+                            </h3>
+                            <!-- 登出按鈕 -->
+                            <button data-action="logout" class="text-[10px] border border-zera-tan/40 text-zera-black/60 hover:text-white hover:bg-zera-tan px-3 py-1.5 rounded-full transition-colors tracking-widest uppercase shadow-sm shrink-0">
+                                Logout
+                            </button>
+                        </div>
+                        
+                        <!-- 雙軌會員進度條區塊 -->
+                        <div class="space-y-4 w-full md:w-80">
+                            <!-- 狗派進度條 -->
+                            <div id="dog-progress-wrap" class="transition-all duration-300">
+                                <div class="flex justify-between items-end mb-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] tracking-widest font-bold dog-text-title">狗派尊榮</span>
+                                        <span id="dog-tier-badge" class="bg-zera-black text-zera-cream text-[9px] px-2 py-0.5 rounded-full tracking-widest font-serif transition-colors whitespace-nowrap">狗奴才</span>
+                                    </div>
+                                    <span id="dog-progress-value" class="text-[10px] font-serif dog-text-value">0 / 10,000</span>
+                                </div>
+                                <div class="progress-track relative w-full h-1.5 bg-black/10 rounded-full overflow-hidden">
+                                    <div id="dog-progress-bar" class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 w-0"></div>
+                                    <div class="absolute top-0 left-[25%] w-[2px] h-full bg-white/40"></div>
+                                    <div class="absolute top-0 left-[50%] w-[2px] h-full bg-white/40"></div>
+                                    <div class="absolute top-0 left-[75%] w-[2px] h-full bg-white/40"></div>
+                                </div>
+                                <div class="flex justify-between text-[8.5px] mt-1.5 font-serif tracking-wider dog-text-nodes">
+                                    <span>0</span>
+                                    <span>500</span>
+                                    <span>1K</span>
+                                    <span>3K</span>
+                                    <span>10K</span>
+                                </div>
+                            </div>
+
+                            <!-- 貓派進度條 -->
+                            <div id="cat-progress-wrap" class="transition-all duration-300">
+                                <div class="flex justify-between items-end mb-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] tracking-widest font-bold cat-text-title">貓派尊榮</span>
+                                        <span id="cat-tier-badge" class="bg-zera-black text-zera-cream text-[9px] px-2 py-0.5 rounded-full tracking-widest font-serif transition-colors whitespace-nowrap">貓奴才</span>
+                                    </div>
+                                    <span id="cat-progress-value" class="text-[10px] font-serif cat-text-value">0 / 10,000</span>
+                                </div>
+                                <div class="progress-track relative w-full h-1.5 bg-black/10 rounded-full overflow-hidden">
+                                    <div id="cat-progress-bar" class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 w-0"></div>
+                                    <div class="absolute top-0 left-[25%] w-[2px] h-full bg-white/40"></div>
+                                    <div class="absolute top-0 left-[50%] w-[2px] h-full bg-white/40"></div>
+                                    <div class="absolute top-0 left-[75%] w-[2px] h-full bg-white/40"></div>
+                                </div>
+                                <div class="flex justify-between text-[8.5px] mt-1.5 font-serif tracking-wider cat-text-nodes">
+                                    <span>0</span>
+                                    <span>500</span>
+                                    <span>1K</span>
+                                    <span>3K</span>
+                                    <span>10K</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 點數區塊維持原樣，加入 shrink-0 防止擠壓 -->
+                <div class="flex gap-4 sm:gap-8 w-full md:w-auto border-t md:border-t-0 md:border-l border-zera-tan/20 pt-6 md:pt-0 md:pl-10 h-full items-center shrink-0">
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-zera-black/50 tracking-widest mb-1">累積消費</p>
+                        <p id="member-total-spent" class="font-serif text-lg sm:text-xl text-zera-black">NT$ 0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-zera-black/50 tracking-widest mb-1">尊榮紅利</p>
+                        <p id="member-reward-points" class="font-serif text-lg sm:text-xl text-zera-tan">0 <span class="text-xs sm:text-sm">pts</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下半部：側邊選單與主內容 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+                
+                <!-- 側邊選單 (Sidebar) -->
+                <div class="col-span-1">
+                    <div class="sticky top-28 bg-white p-6 rounded-2xl border border-zera-tan/10 shadow-sm">
+                        <nav class="space-y-2">
+                            <!-- 加上 active 樣式的示範 (我的訂單) -->
+                            <button data-action="switch-member-tab" data-target="tab-orders" class="w-full text-left px-4 py-3 text-sm tracking-wide bg-zera-cream/50 text-zera-tan border-l-2 border-zera-tan font-bold transition-colors">
+                                歷史訂單
+                            </button>
+                            <button data-action="switch-member-tab" data-target="tab-profile" class="w-full text-left px-4 py-3 text-sm tracking-wide text-zera-black/60 hover:text-zera-tan hover:bg-zera-cream/30 border-l-2 border-transparent transition-colors">
+                                帳戶設定
+                            </button>
+                            <button data-action="switch-member-tab" data-target="tab-benefits" class="w-full text-left px-4 py-3 text-sm tracking-wide text-zera-black/60 hover:text-zera-tan hover:bg-zera-cream/30 border-l-2 border-transparent transition-colors">
+                                會員權益
+                            </button>
+                            <div class="pt-4 mt-4 border-t border-zera-tan/10">
+                                <a href="https://line.me/R/ti/p/@117erntk" target="_blank" class="w-full flex items-center justify-between px-4 py-3 text-sm tracking-wide text-zera-black/60 hover:text-zera-tan hover:bg-zera-cream/30 transition-colors">
+                                    專屬客服聯繫
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                                <button data-action="logout" class="w-full text-left px-4 py-3 text-sm tracking-wide text-red-800/70 hover:text-red-800 hover:bg-red-50 transition-colors">
+                                    登出帳號
+                                </button>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- 內容顯示區 (Content Area) -->
+                <div class="col-span-1 md:col-span-3">
+                    
+                    <!-- 標籤頁 1: 歷史訂單 (預設顯示) -->
+                    <div id="tab-orders" class="member-tab-content block">
+                        <h3 class="font-serif text-xl tracking-widest text-zera-black mb-6 border-b border-zera-tan/20 pb-4">ORDER HISTORY</h3>
+                        
+                        <!-- 動態渲染歷史訂單的容器 -->
+                        <div id="member-orders-container" class="space-y-4">
+                            <p class="text-center py-8 text-zera-black/50 text-sm italic">載入中...</p>
+                        </div>
+                    </div>
+
+                    <!-- 標籤頁 2: 帳戶設定 (初始隱藏) -->
+                    <div id="tab-profile" class="member-tab-content hidden">
+                        <h3 class="font-serif text-xl tracking-widest text-zera-black mb-6 border-b border-zera-tan/20 pb-4">PROFILE SETTINGS</h3>
+                        <!-- 留白給後續表單實作 -->
+                        <div class="bg-white rounded-2xl border border-zera-tan/10 p-8 text-center text-zera-black/50 text-sm">
+                            會員資料修改表單預留區塊
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+        <!-- 視圖 3: 購物車/結帳 (初始隱藏) -->
+        <div id="cart-view" class="view-section hidden animate-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="font-serif text-3xl tracking-widest text-zera-black uppercase">Shopping Cart</h2>
+                <p class="text-zera-tan font-serif tracking-widest text-sm mt-2">專屬購物車</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-12">
+                <!-- 左側：購物車商品清單 -->
+                <div class="w-full lg:w-2/3">
+                    <div class="border-b border-zera-tan/30 pb-4 mb-6 hidden md:grid grid-cols-12 gap-4 text-xs font-serif tracking-widest text-zera-black/50 uppercase">
+                        <div class="col-span-6">Product</div>
+                        <div class="col-span-2 text-center">Price</div>
+                        <div class="col-span-2 text-center">Quantity</div>
+                        <div class="col-span-2 text-right">Subtotal</div>
+                    </div>
+
+                    <!-- 動態渲染購物車內容的容器 -->
+                    <div id="cart-items-container" class="space-y-6">
+                        <!-- 購物車為空時的預設顯示 -->
+                        <div class="text-center py-12 text-zera-black/50 text-sm italic">
+                            您的購物車目前沒有任何商品。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：訂單摘要與結帳 -->
+                <div class="w-full lg:w-1/3">
+                    <div class="bg-white p-8 rounded-3xl border border-zera-tan/10 shadow-sm sticky top-28">
+                        <h3 class="font-serif text-lg tracking-widest mb-6 border-b border-zera-tan/10 pb-4">ORDER SUMMARY</h3>
+                        
+                        <div class="space-y-4 text-sm mb-6">
+                            <div class="flex justify-between text-zera-black/70">
+                                <span>商品小計 (Items Amount)</span>
+                                <span id="cart-subtotal" class="font-serif tracking-wide">NT$ 0</span>
+                            </div>
+                            <div class="flex justify-between text-zera-black/70">
+                                <span>物流運費 (Shipping)</span>
+                                <span class="text-xs italic text-zera-tan text-right">結帳時依溫層/材積計算</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-zera-tan/20 pt-6 mb-8 flex justify-between items-end">
+                            <span class="text-sm font-bold tracking-widest">總計 TOTAL</span>
+                            <span id="cart-total" class="font-serif text-2xl text-zera-tan">NT$ 0</span>
+                        </div>
+
+                        <button id="checkout-btn" data-i18n="btn_checkout" class="w-full border border-zera-tan bg-zera-tan text-zera-cream hover:bg-transparent hover:text-zera-tan font-serif tracking-widest py-3.5 rounded-full transition-all duration-300 text-xs uppercase text-center block">
+                            前往結帳 Checkout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 視圖 4: 物流與結帳 (Checkout View) -->
+        <div id="checkout-view" class="view-section hidden animate-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="font-serif text-3xl tracking-widest text-zera-black uppercase">Checkout</h2>
+                <p class="text-zera-tan font-serif tracking-widest text-sm mt-2">物流與結帳資訊</p>
+            </div>
+
+            <div class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-3xl border border-zera-tan/20 shadow-sm">
+                <form id="checkout-form" class="space-y-8">
+                    
+                    <!-- 收件人基本資料 -->
+                    <div>
+                        <h3 class="font-serif text-lg tracking-widest mb-6 border-b border-zera-tan/10 pb-4 uppercase">Recipient Info / 收件人資訊</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs tracking-widest mb-2 font-serif text-zera-black/70">姓名 Name</label>
+                                <input type="text" id="ship-name" required class="w-full bg-zera-cream/20 border border-zera-tan/30 rounded-lg px-4 py-2.5 text-zera-black focus:outline-none focus:border-zera-tan transition-colors text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs tracking-widest mb-2 font-serif text-zera-black/70">手機 Phone</label>
+                                <input type="tel" id="ship-phone" required class="w-full bg-zera-cream/20 border border-zera-tan/30 rounded-lg px-4 py-2.5 text-zera-black focus:outline-none focus:border-zera-tan transition-colors text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 物流方式選擇 -->
+                    <div>
+                        <h3 class="font-serif text-lg tracking-widest mb-6 border-b border-zera-tan/10 pb-4 uppercase">Shipping Method / 物流方式</h3>
+                        <div>
+                            <label class="block text-xs tracking-widest mb-2 font-serif text-zera-black/70">選擇物流</label>
+                            <select id="logistics-select" required class="w-full bg-zera-cream/20 border border-zera-tan/30 rounded-lg px-4 py-2.5 text-zera-black focus:outline-none focus:border-zera-tan transition-colors text-sm cursor-pointer appearance-none">
+                                <option value="" disabled selected>請選擇物流方式</option>
+                                <option value="7-11">7-11 超商取貨</option>
+                                <option value="FamilyMart">全家 超商取貨</option>
+                                <option value="BlackCat">黑貓宅急便 (宅配)</option>
+                                <option value="HCT">新竹物流 (宅配)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 動態物流區塊 A: 超商門市搜尋 (預設隱藏) -->
+                    <div id="cvs-search-area" class="hidden bg-zera-cream/20 p-6 rounded-xl border border-zera-tan/10 space-y-4">
+                        <label class="block text-xs tracking-widest font-serif text-zera-black/70">依地址或路名周邊查詢門市</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="cvs-keyword" placeholder="例如：板橋區懷德街" class="flex-1 bg-white border border-zera-tan/30 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-zera-tan">
+                            <button type="button" id="cvs-search-btn" class="bg-zera-charcoal text-white px-6 py-2 rounded-lg text-xs tracking-widest hover:bg-zera-tan transition-colors">搜尋門市</button>
+                        </div>
+                        <!-- 搜尋結果列表 -->
+                        <div id="cvs-results-container" class="max-h-48 overflow-y-auto space-y-2 mt-4 hide-scrollbar"></div>
+                        
+                        <!-- 已選取的門市顯示 -->
+                        <div id="cvs-selected-display" class="hidden mt-4 p-4 bg-zera-tan/10 border border-zera-tan/30 rounded-lg">
+                            <p class="text-xs text-zera-tan font-bold mb-1">已選擇門市：</p>
+                            <p id="cvs-store-name" class="text-sm font-bold text-zera-black"></p>
+                            <p id="cvs-store-address" class="text-xs text-zera-black/60 mt-1"></p>
+                        </div>
+                    </div>
+
+                    <!-- 動態物流區塊 B: 宅配地址輸入 (預設隱藏) -->
+                    <div id="home-delivery-area" class="hidden space-y-4">
+                        <label class="block text-xs tracking-widest mb-2 font-serif text-zera-black/70">配送地址 Delivery Address</label>
+                        <input type="text" id="ship-address" class="w-full bg-zera-cream/20 border border-zera-tan/30 rounded-lg px-4 py-2.5 text-zera-black focus:outline-none focus:border-zera-tan transition-colors text-sm" placeholder="請輸入完整收件地址">
+                    </div>
+
+                    <!-- 最終送出按鈕 -->
+                    <div class="pt-8 border-t border-zera-tan/10 mt-8">
+                        <button type="submit" id="final-submit-btn" class="w-full border border-zera-tan bg-zera-tan text-zera-cream hover:bg-transparent hover:text-zera-tan font-serif tracking-widest py-4 rounded-full transition-all duration-300 text-sm uppercase text-center block shadow-md">
+                            確認送出訂單 Submit Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 視圖 5: 付款頁面 (初始隱藏) -->
+        <div id="payment-view" class="view-section hidden animate-fade-in">
+            <div class="text-center mb-12">
+                <h2 class="font-serif text-3xl tracking-widest text-zera-black uppercase">Payment</h2>
+                <p class="text-zera-tan font-serif tracking-widest text-sm mt-2">訂單付款</p>
+            </div>
+            
+            <div class="max-w-xl mx-auto bg-white p-8 md:p-12 rounded-3xl border border-zera-tan/20 shadow-sm mt-8 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-zera-tan"></div>
+                
+                <div class="space-y-4 mb-10 pb-8 border-b border-zera-tan/10 text-sm">
+                    <div class="flex justify-between text-zera-black/60">
+                        <span class="tracking-widest">訂單編號 Order ID</span>
+                        <span id="payment-order-id" class="font-bold text-zera-black font-serif"></span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="tracking-widest text-zera-black/60">應付金額 Amount</span>
+                        <span id="payment-amount" class="font-serif text-2xl text-zera-tan font-bold"></span>
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <label class="block text-xs tracking-widest mb-3 font-serif text-zera-black/70 uppercase">Payment Method / 選擇付款方式</label>
+                    <div class="relative">
+                        <svg class="w-5 h-5 absolute left-3 top-3 text-zera-black/40 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                        <select id="payment-method-select" class="w-full bg-zera-cream/20 border border-zera-tan/30 rounded-lg pl-10 pr-4 py-3 text-zera-black focus:outline-none focus:border-zera-tan transition-colors text-sm cursor-pointer appearance-none">
+                            <option value="網銀轉帳" selected>網銀轉帳</option>
+                            <option value="信用卡-一次付清">信用卡-一次付清</option>
+                            <option value="信用卡-國外卡">信用卡-國外卡</option>
+                            <option value="信用卡-銀聯卡">信用卡-銀聯卡</option>
+                            <option value="Apple Pay">Apple Pay</option>
+                            <option value="Google Pay">Google Pay</option>
+                            <option value="ATM 轉帳">ATM 轉帳</option>
+                            <option value="超商代碼">超商代碼</option>
+                            <option value="icash Pay">icash Pay</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-zera-black/40">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- 網銀轉帳專屬區塊 (動態顯示) -->
+                    <div id="bank-transfer-area" class="mt-4 bg-zera-cream/30 p-5 rounded-xl border border-zera-tan/20 transition-all duration-300">
+                        <h4 class="text-xs font-bold text-zera-tan mb-3 tracking-widest">匯款帳號資訊</h4>
+                        <div class="space-y-2 text-sm text-zera-black/80 mb-4 bg-white p-4 rounded-lg border border-zera-tan/10">
+                            <p class="flex justify-between"><span>公司名稱</span><span class="font-serif font-bold">澤拉寵物用品有限公司</span></p>
+                            <p class="flex justify-between"><span>銀行代號</span><span class="font-serif font-bold">808 (玉山銀行)</span></p>
+                            <div class="flex justify-between items-center border-t border-zera-tan/10 pt-2 mt-2">
+                                <span>匯款帳號</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="bank-account-text" class="font-serif font-bold text-lg tracking-wider text-zera-tan">1234-567-890123</span>
+                                    <button type="button" id="copy-bank-acc-btn" class="bg-zera-tan/10 hover:bg-zera-tan hover:text-white text-zera-tan px-3 py-1 rounded text-xs transition-colors font-bold tracking-widest">複製</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] tracking-widest mb-1.5 font-serif text-zera-black/70">請輸入匯款帳號末 5 碼 (必填)</label>
+                            <input type="text" id="bank-last-5" maxlength="5" placeholder="例如：12345" class="w-full bg-white border border-zera-tan/30 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-zera-tan transition-colors font-serif tracking-widest text-center">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="process-payment-btn" class="w-full border border-zera-tan bg-zera-tan text-zera-cream hover:bg-transparent hover:text-zera-tan font-serif tracking-widest py-3.5 rounded-full transition-all duration-300 text-sm uppercase text-center block shadow-md">
+                    確認付款 Pay Now
+                </button>
+                <button id="cancel-payment-btn" class="w-full mt-4 text-xs text-zera-black/40 hover:text-red-800 transition-colors underline pt-2 block text-center tracking-widest">
+                    稍後付款 (訂單將保留於會員中心)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 全域頁尾 -->
+    <footer id="contact-us" class="bg-zera-tan text-zera-cream py-16 sm:py-24 scroll-mt-24">
+        <div class="max-w-4xl mx-auto px-8 grid md:grid-cols-2 gap-12 sm:gap-16">
+            <div class="space-y-6">
+                <h3 data-i18n="footer_about_title" class="font-serif text-2xl sm:text-3xl">關於 ZERA</h3>
+                <p data-i18n="footer_about_desc" class="leading-relaxed text-sm opacity-90 italic">
+                    ZERA 之名，源於杜賓 Zeus 與邊牧 Vira 的靈魂共鳴。我們創立之初衷，乃是渴望將精緻細膩的照護哲學，化作平實優雅的可能，讓摯愛伴侶在每一刻陪伴中，皆能享有頂級生活之品質與尊榮。
+                </p>
+            </div>
+            <div class="space-y-4">
+                <h3 data-i18n="footer_contact_title" class="font-serif text-2xl sm:text-3xl">聯絡我們</h3>
+                <div class="text-sm space-y-2 opacity-90">
+                    <p data-i18n="footer_service_hours">服務時間：週一至週五 8:00 - 18:00</p>
+                    <p data-i18n="footer_service_note">平日若遇國定假日或公休則彈性回覆</p>
+                    <a href="https://line.me/R/ti/p/@117erntk" data-i18n="footer_line">官方 LINE: @117erntk</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 全域 Lightbox (由 JS 控制顯示) -->
+    <div id="lightbox" class="fixed inset-0 z-[100] bg-zera-black/95 hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+        <button data-action="close-lightbox" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-zera-cream hover:text-zera-tan focus:outline-none z-[110] p-2">
+            <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        
+        <button data-action="prev-lightbox-image" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-zera-cream/50 hover:text-zera-cream focus:outline-none z-[110] p-4 transition-colors">
+            <svg class="w-10 h-10 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button data-action="next-lightbox-image" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-zera-cream/50 hover:text-zera-cream focus:outline-none z-[110] p-4 transition-colors">
+            <svg class="w-10 h-10 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+
+        <div id="lightbox-touch-area" class="absolute inset-0 flex items-center justify-center z-[105] w-full h-full">
+            <img id="lightbox-img" src="" class="max-w-[90vw] max-h-[85vh] object-contain select-none shadow-2xl transition-transform duration-300" alt="Product Zoom">
+        </div>
+
+        <div id="lightbox-indicators" class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-[110]"></div>
+    </div>
+
+    <!-- 規格選擇器 Modal (初始隱藏) -->
+    <div id="product-modal" class="fixed inset-0 z-[120] bg-zera-black/80 hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm flex items-end md:items-center justify-center">
+        
+        <!-- Modal 內容容器 -->
+        <div class="bg-white w-full md:w-[600px] rounded-t-3xl md:rounded-3xl overflow-hidden relative transform translate-y-full md:translate-y-8 opacity-0 transition-all duration-300" id="product-modal-content">
+            
+            <!-- 關閉按鈕 -->
+            <button data-action="close-product-modal" class="absolute top-4 right-4 z-10 p-2 text-zera-black/50 hover:text-zera-black transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div class="p-6 md:p-8 flex flex-col gap-6 max-h-[85vh] overflow-y-auto hide-scrollbar">
+                
+                <!-- 商品基本資訊 -->
+                <div class="flex gap-4 items-center border-b border-zera-tan/10 pb-6">
+                    <div class="w-24 h-24 rounded-xl border border-zera-tan/20 p-2 bg-zera-cream/20 flex-shrink-0">
+                        <img id="modal-img" src="" alt="Product" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <h3 id="modal-title" class="font-bold text-zera-black text-lg leading-tight mb-2">載入中...</h3>
+                        <p id="modal-price" class="font-serif text-zera-tan text-xl font-bold">NT$ 0</p>
+                    </div>
+                </div>
+
+                <!-- 動態生成的規格選項區塊 (如顏色、尺寸) -->
+                <div id="modal-variants-container" class="space-y-5">
+                    <!-- 由 JS 動態填入 -->
+                </div>
+
+                <!-- 數量選擇 -->
+                <div class="flex justify-between items-center py-4 border-t border-zera-tan/10 mt-2">
+                    <span class="text-sm font-bold tracking-widest text-zera-black/70 uppercase">Quantity</span>
+                    <div class="flex items-center border border-zera-tan/30 rounded-full px-3 py-1">
+                        <button id="modal-qty-minus" class="w-8 h-8 flex items-center justify-center text-lg text-zera-black hover:text-zera-tan focus:outline-none">-</button>
+                        <span id="modal-qty-value" class="w-10 text-center font-serif text-sm">1</span>
+                        <button id="modal-qty-plus" class="w-8 h-8 flex items-center justify-center text-lg text-zera-black hover:text-zera-tan focus:outline-none">+</button>
+                    </div>
+                </div>
+
+                <!-- 加入購物車按鈕 -->
+                <button id="modal-add-to-cart-btn" class="w-full mt-2 border border-zera-tan bg-zera-tan text-zera-cream hover:bg-transparent hover:text-zera-tan font-serif tracking-widest py-3.5 rounded-full transition-all duration-300 text-sm uppercase">
+                    加入購物車 Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- 未登入攔截提示 Modal -->
+    <div id="auth-prompt-modal" class="fixed inset-0 z-[130] bg-zera-black/80 hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white w-[90%] md:w-[400px] rounded-3xl p-8 text-center relative transform scale-95 opacity-0 transition-all duration-300" id="auth-prompt-content">
+            
+            <button data-action="close-auth-prompt" class="absolute top-4 right-4 p-2 text-zera-black/40 hover:text-zera-black transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div class="w-16 h-16 bg-zera-cream/50 rounded-full flex items-center justify-center mx-auto mb-4 text-zera-tan">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            
+            <h3 class="font-serif text-xl tracking-widest text-zera-black mb-2 uppercase">Login Required</h3>
+            <p class="text-sm text-zera-black/60 mb-8 leading-relaxed">為了和您的高貴夥伴一同實踐極致生活美學<br>誠摯邀請您點亮貴賓身份。</p>
+            
+            <button id="go-to-auth-btn" class="w-full border border-zera-tan bg-zera-tan text-zera-cream hover:bg-transparent hover:text-zera-tan font-serif tracking-widest py-3 rounded-full transition-all duration-300 text-sm uppercase">
+                前往登入 / 註冊
+            </button>
+        </div>
+    </div>
+
+    <!-- 訂單詳情 Modal (Order Details Card) -->
+    <div id="order-details-modal" class="fixed inset-0 z-[140] bg-zera-black/60 backdrop-blur-sm hidden grid place-items-center p-4 opacity-0 transition-opacity duration-300">
+        <!-- Card Container -->
+        <div class="w-[400px] max-w-[90%] bg-[rgb(255,250,235)] shadow-[0_187px_75px_rgba(0,0,0,0.01),0_105px_63px_rgba(0,0,0,0.05),0_47px_47px_rgba(0,0,0,0.09),0_12px_26px_rgba(0,0,0,0.1)] rounded-[19px] overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col" id="order-details-content">
+            
+            <!-- Title -->
+            <div class="w-full h-[40px] relative flex items-center pl-5 border-b border-[rgba(16,86,82,0.75)]">
+                <label class="font-bold text-[11px] text-black tracking-widest uppercase">ORDER DETAILS / 訂單明細</label>
+            </div>
+            
+            <!-- Steps / Content -->
+            <div class="flex flex-col p-5 gap-4 max-h-[60vh] overflow-y-auto hide-scrollbar">
+                
+                <!-- Information -->
+                <div class="grid gap-2.5">
+                    <span class="text-[13px] font-bold text-black mb-1">INFORMATION</span>
+                    <p class="text-[11px] font-bold text-black" id="modal-detail-id">Order ID: </p>
+                    <p class="text-[11px] font-bold text-black" id="modal-detail-date">Date: </p>
+                </div>
+                <hr class="h-px bg-[rgba(16,86,82,0.75)] border-none my-1">
+                
+                <!-- Items -->
+                <div class="grid gap-2.5">
+                    <span class="text-[13px] font-bold text-black mb-1">ITEMS</span>
+                    <div id="modal-detail-items" class="space-y-2">
+                        <!-- 動態商品列表將渲染於此 -->
+                    </div>
+                </div>
+                <hr class="h-px bg-[rgba(16,86,82,0.75)] border-none my-1">
+                
+                <!-- Payment Status -->
+                <div class="grid gap-2.5">
+                    <span class="text-[13px] font-bold text-black mb-1">PAYMENT & STATUS</span>
+                    <p class="text-[11px] font-bold text-black" id="modal-detail-status">Status: </p>
+                </div>
+                <hr class="h-px bg-[rgba(16,86,82,0.75)] border-none my-1">
+                
+                <!-- Subtotal / Details -->
+                <div class="grid grid-cols-[10fr_1fr] gap-1.5 mt-1">
+                    <span class="text-[12px] font-bold text-black my-auto mr-auto">Items Subtotal:</span>
+                    <span class="text-[13px] font-bold text-black my-auto ml-auto" id="modal-detail-subtotal">NT$0</span>
+                    <span class="text-[12px] font-bold text-black my-auto mr-auto">Shipping:</span>
+                    <span class="text-[13px] font-bold text-black my-auto ml-auto text-right">NT$0</span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between p-[10px_10px_10px_20px] bg-[rgba(16,86,82,0.5)]">
+                <!-- 取消訂單小字按鈕 -->
+                <button id="modal-cancel-btn" class="text-[11px] text-black/50 hover:text-red-800 transition-colors underline font-bold tracking-wider">
+                    取消訂單 Cancel
+                </button>
+                <div class="flex items-center gap-4">
+                    <label class="relative text-[22px] text-[#2B2B2F] font-black" id="modal-detail-total">NT$0</label>
+                    <button data-action="close-order-details" class="flex justify-center items-center w-[120px] h-[36px] bg-[rgba(16,86,82,0.55)] shadow-[0_0.5px_0.5px_rgba(16,86,82,0.75),0_1px_0.5px_rgba(16,86,82,0.75)] rounded-[7px] border border-[rgb(16,86,82)] text-black text-[13px] font-bold hover:bg-[rgba(16,86,82,0.7)] transition-all duration-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
