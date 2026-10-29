@@ -1900,7 +1900,7 @@ window.switchCategory = function(arg1, arg2) {
   window.executeCategorySwitch(btnElement, cleanCategoryName);
 };
 
-// ================= 台灣銀行 CNY 即期匯率抓取模組 (雙代理備援 + 波動警示) =================
+// ================= 台灣銀行 CNY 即期匯率抓取模組 (網頁 HTML 解析版) =================
 window.fetchTaiwanBankCNYRate = async function() {
   const displayEl = document.getElementById('cny-rate-display');
   if (!displayEl) return;
@@ -1908,87 +1908,47 @@ window.fetchTaiwanBankCNYRate = async function() {
   try {
     displayEl.innerText = '讀取中...';
     
-    // 目標網址 (加上隨機時間戳，強迫破除代理伺服器的舊快取)
-    const targetUrl = `https://rate.bot.com.tw/xrt?Lang=zh-TW&_t=${Date.now()}`;
-    let htmlText = '';
-
-    // 【防呆備援機制】若主代理伺服器掛掉，自動無縫切換備用代理
-    try {
-      // 優先嘗試代理 A (corsproxy)
-      const res1 = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
-      if (!res1.ok) throw new Error('代理 A 狀態異常');
-      htmlText = await res1.text();
-    } catch (err1) {
-      console.warn('主代理連線失敗，自動切換備用代理...', err1);
-      // 備用嘗試代理 B (allorigins)
-      const res2 = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
-      if (!res2.ok) throw new Error('備用代理亦無法連線');
-      htmlText = await res2.text();
-    }
+    // 透過代理抓取台銀官方匯率網頁 HTML
+    const targetUrl = encodeURIComponent('https://rate.bot.com.tw/xrt?Lang=zh-TW');
+    const response = await fetch(`https://api.allorigins.win/raw?url=${targetUrl}`);
     
+    if (!response.ok) throw new Error('匯率網頁回應異常');
+    
+    const htmlText = await response.text();
+    
+    // 將 HTML 純文字轉為虛擬 DOM 結構，方便精準定位
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, 'text/html');
     
     let cnySpotSellRate = null;
+    
+    // 選取表格中的所有資料列
     const rows = doc.querySelectorAll('table tbody tr');
     
     for (const row of rows) {
+      // 尋找包含「人民幣 (CNY)」的資料列
       const currencyName = row.innerText || '';
-      // 鎖定人民幣 (CNY)
       if (currencyName.includes('CNY') || currencyName.includes('人民幣')) {
+        
+        // 透過特有屬性 data-table 精準鎖定「本行即期賣出」的 <td> 標籤
         const spotSellTd = row.querySelector('td[data-table="本行即期賣出"]');
+        
         if (spotSellTd) {
           cnySpotSellRate = spotSellTd.innerText.trim();
         }
-        break;
+        break; // 找到即跳出迴圈
       }
     }
 
-    // 檢查數值是否成功解析
-    const currentRate = parseFloat(cnySpotSellRate);
-    if (!isNaN(currentRate)) {
-      displayEl.innerText = currentRate;
-
-      // --- 波動警示判定邏輯 ---
-      const BASE_RATE = 4.9; 
-      const fluctuationPercent = ((currentRate - BASE_RATE) / BASE_RATE) * 100;
-      const absFluctuation = Math.abs(fluctuationPercent);
-
-      // 抓取 DOM 中的 Tooltip 元素
-      const tooltipContainer = displayEl.nextElementSibling;
-      const tooltipIcon = tooltipContainer ? tooltipContainer.querySelector('span') : null;
-      const tooltipText = tooltipContainer ? tooltipContainer.querySelector('.tooltip-text') : null;
-
-      if (tooltipIcon && tooltipText) {
-        if (absFluctuation >= 3) {
-          // 波動 >= 3%，啟動紅色警示模式
-          const direction = fluctuationPercent > 0 ? '上漲' : '下跌';
-          tooltipIcon.innerText = '!';
-          tooltipIcon.classList.add('rate-warning-icon');
-          
-          tooltipText.classList.add('rate-warning-tooltip');
-          tooltipText.innerHTML = `
-            <strong style="font-size:1.1em;">⚠️ 匯率劇烈波動警示</strong><br>
-            目前匯率 <strong>${currentRate}</strong> 對比基準價 4.9<br>已<strong style="color:#ffdddd;">${direction} ${absFluctuation.toFixed(2)}%</strong>。<br>
-            <span style="display:block; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.3);">
-              因超過 ±3% 預警閾值並若穩定於此，平台可能近期啟動調價機制，請留意最新報價。
-            </span>`;
-        } else {
-          // 波動正常，恢復預設狀態
-          tooltipIcon.innerText = '?';
-          tooltipIcon.classList.remove('rate-warning-icon');
-          
-          tooltipText.classList.remove('rate-warning-tooltip');
-          tooltipText.innerHTML = '匯率波動超過 ±3% 至 ±5% 並穩定在該價格時，可能啟動調價機制。';
-        }
-      }
-
+    // 檢查抓取到的數值是否正常 (確保是數字格式)
+    if (cnySpotSellRate && !isNaN(parseFloat(cnySpotSellRate))) {
+      displayEl.innerText = cnySpotSellRate;
     } else {
       displayEl.innerText = '暫無報價';
     }
 
   } catch (err) {
-    console.error('抓取 CNY 匯率失敗詳細原因:', err);
+    console.error('抓取 CNY 匯率失敗:', err);
     displayEl.innerText = '抓取失敗';
   }
 };
