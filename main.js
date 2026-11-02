@@ -749,15 +749,22 @@ async function processCheckout() {
   }
 }
 
-// ================= 6. 匯款回報模式 =================
-window.openOrderPaymentView = async function(orderId) {
+// ================= 6. 匯款回報模式 (首次貨款與二次運費) =================
+let isPayingShippingFee = false;
+
+window.openOrderPaymentView = async function(orderId, isShippingMode = false) {
   try {
+    isPayingShippingFee = isShippingMode;
     hideAllMainViews();
     const checkoutView = document.getElementById('checkout-view');
     if (checkoutView) checkoutView.style.display = 'block';
 
     const titleEl = document.getElementById('checkout-view-title');
-    if (titleEl) titleEl.innerText = `訂單匯款回報 (${orderId})`;
+    if (titleEl) {
+      titleEl.innerText = isShippingMode
+        ? `運費結帳頁面 (${orderId})`
+        : `訂單匯款回報 (${orderId})`;
+    }
 
     const backBtn = document.getElementById('checkout-back-btn');
     if (backBtn) {
@@ -777,6 +784,11 @@ window.openOrderPaymentView = async function(orderId) {
       if (el) el.style.display = 'block';
     });
 
+    const taxIdInput = document.getElementById('pay-tax-id');
+    if (taxIdInput && taxIdInput.parentElement) {
+      taxIdInput.parentElement.style.display = isShippingMode ? 'none' : 'block';
+    }
+
     // 初始化字樣
     const readOrderId = document.getElementById('readonly-order-id');
     if (readOrderId) readOrderId.innerText = orderId;
@@ -784,8 +796,9 @@ window.openOrderPaymentView = async function(orderId) {
     const readInfo = document.getElementById('readonly-delivery-info');
     if (readInfo) readInfo.innerText = '資料讀取中...';
 
-    const finalTotal = document.getElementById('checkout-final-total');
-    if (finalTotal) finalTotal.innerText = '...';
+    document.querySelectorAll('#checkout-final-total').forEach(el => {
+      el.innerText = '...';
+    });
 
     // 讀取訂單最新資料
     const { data: order, error } = await supabase
@@ -804,12 +817,18 @@ window.openOrderPaymentView = async function(orderId) {
     // 更新全域變數，供送出時使用
     currentPayingOrderId = orderId;
     if (readInfo) readInfo.innerText = order.admin_note || '標準配送';
-    if (finalTotal) finalTotal.innerText = order.total_amount;
+    const targetAmount = isShippingMode ? (order.shipping_fee || 0) : order.total_amount;
+    document.querySelectorAll('#checkout-final-total').forEach(el => {
+      el.innerText = targetAmount;
+    });
 
     const last5Input = document.getElementById('pay-account-last-5');
-    if (last5Input) last5Input.value = order.account_last_5 || '';
+    if (last5Input) {
+      last5Input.value = isShippingMode
+        ? (order.shipping_account_last_5 || '')
+        : (order.account_last_5 || '');
+    }
 
-    const taxIdInput = document.getElementById('pay-tax-id');
     if (taxIdInput) taxIdInput.value = order.tax_id || '';
 
     // 綁定按鈕 (雙重保險)
@@ -847,16 +866,23 @@ window.submitOrderPaymentReport = async function(orderId) {
       payBtn.innerText = '資料送出中...';
     }
 
-    // 送出更新至資料庫
+    // 二次運費回報使用獨立欄位，不更動首次貨款的付款狀態或資料。
+    const updatePayload = isPayingShippingFee
+      ? { shipping_fee_status: 'pending_review', shipping_account_last_5: last5 }
+      : { status: '匯款待查', account_last_5: last5, tax_id: taxId || null };
+
     const { error } = await supabase
       .from('orders')
-      .update({ status: '匯款待查', account_last_5: last5, tax_id: taxId || null })
+      .update(updatePayload)
       .eq('order_id', targetOrderId)
       .eq('user_id', currentUser.id);
 
     if (error) throw error;
 
-    alert(`訂單 ${targetOrderId} 匯款資料已送出！待管理員審核確認後即會開始安排出貨。`);
+    alert(isPayingShippingFee
+      ? `訂單 ${targetOrderId} 運費匯款資料已送出！待管理員確認後即會安排出貨。`
+      : `訂單 ${targetOrderId} 匯款資料已送出！待管理員審核確認後即會開始安排出貨。`
+    );
     loadMyOrders();
 
   } catch (err) {
@@ -1017,6 +1043,7 @@ window.loadMyOrders = async function() {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
+    .eq('user_id', currentUser.id)
     .order('created_at', { ascending: false }); 
 
   if (error) {
@@ -1060,17 +1087,29 @@ window.renderOrdersList = function(statusCategory) {
     let actionBtnHtml = '';
     if (order.status === '未付款') {
       if (order.is_payable) {
-        actionBtnHtml = `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="openOrderPaymentView('${order.order_id}')">前往匯款</button>`;
+        actionBtnHtml = `<button class="btn-orange" style="margin-top: 10px; width: 100%;" onclick="openOrderPaymentView('${order.order_id}', false)">前往匯款</button>`;
       } else {
         actionBtnHtml = '<span style="display: block; margin-top: 10px; color:#d9534f; font-size:0.9em;">待管理員核定運費後開放匯款</span>';
       }
     } else if (order.status === '匯款待查') {
       actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.9em;">匯款審核中 (後五碼: ${order.account_last_5 || '未提供'})</span>`;
-    }
-    else if (order.status === '進行中') {
-      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#28a745; font-size:0.95em; font-weight:bold;">📦 款項已確認，安排出貨中</span>`;
+    } else if (order.status === '進行中') {
+      if (order.shipping_fee_status === 'unpaid') {
+        actionBtnHtml = `
+          <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404; font-size: 0.9em;">
+            <strong>⚖️ 貨物已入庫完成秤重，應補運費尾款：$${order.shipping_fee}</strong>
+          </div>
+          <button class="btn-orange" style="margin-top: 8px; width: 100%; background: #fd7e14;" onclick="openOrderPaymentView('${order.order_id}', true)">前往支付運費 ($${order.shipping_fee})</button>
+        `;
+      } else if (order.shipping_fee_status === 'pending_review') {
+        actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#17a2b8; font-size:0.95em; font-weight:bold;">🚚 運費匯款審核中 (運費: $${order.shipping_fee} | 後五碼: ${order.shipping_account_last_5 || '未提供'})</span>`;
+      } else if (order.shipping_fee_status === 'paid') {
+        actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#28a745; font-size:0.95em; font-weight:bold;">📦 貨款與運費($${order.shipping_fee})皆已確認，安排出貨中</span>`;
+      } else {
+        actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#28a745; font-size:0.95em; font-weight:bold;">📦 款項已確認，安排出貨中</span>`;
+      }
     } else if (order.status === '完成') {
-      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#6c757d; font-size:0.95em; font-weight:bold;">✅ 此訂單已出貨並完成結案</span>`;
+      actionBtnHtml = `<span style="display: block; margin-top: 10px; color:#6c757d; font-size:0.95em; font-weight:bold;">✅ 此訂單已出貨並完成結案${order.shipping_fee ? ` (含二階段運費: $${order.shipping_fee})` : ''}</span>`;
     }
     
     // 加入防呆：確保 order_items 和 specs 存在，相容舊訂單
@@ -1136,7 +1175,7 @@ window.loadAdminPanel = async function() {
   // 僅讀取核心欄位，排除大容量的 order_items 欄位以提升效能
   const { data, error } = await supabase
     .from('orders')
-    .select('order_id, user_id, user_no, user_name, total_amount, status, admin_note, is_payable, account_last_5, tax_id, created_at')
+    .select('order_id, user_id, user_no, user_name, total_amount, status, admin_note, is_payable, account_last_5, tax_id, shipping_fee, shipping_fee_status, shipping_account_last_5, created_at')
     .in('status', ['未付款', '匯款待查', '進行中'])
     .order('created_at', { ascending: false });
 
@@ -1172,13 +1211,38 @@ window.loadAdminPanel = async function() {
       `;
     }
 
-    // 情境 C：進行中 (出貨與結案)
+    // 情境 C：進行中 (出貨結案與二階段運費)
     else if (order.status === '進行中') {
+      let shippingStatusBadge = '';
+      if (order.shipping_fee_status === 'unpaid') {
+        shippingStatusBadge = `<p style="color: #d9534f; font-weight: bold; margin: 4px 0;">⏳ 已解鎖運費 ($${order.shipping_fee})，等待客戶匯款中</p>`;
+      } else if (order.shipping_fee_status === 'pending_review') {
+        shippingStatusBadge = `
+          <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 8px 0; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #856404;">💰 運費尾款審核 (應收運費: $${order.shipping_fee})</h4>
+            <p style="margin: 4px 0;">二次匯款帳戶後五碼: <strong style="color:red; font-size: 1.2em;">${order.shipping_account_last_5 || '未提供'}</strong></p>
+            <button id="btn-approve-ship-${order.order_id}" class="btn-orange" style="background: #28a745;" onclick="adminApproveShippingPayment('${order.order_id}')">確認已收運費</button>
+          </div>
+        `;
+      } else if (order.shipping_fee_status === 'paid') {
+        shippingStatusBadge = `<p style="color: #28a745; font-weight: bold; margin: 4px 0;">✅ 運費尾款已確認收訖 ($${order.shipping_fee} | 後五碼: ${order.shipping_account_last_5 || '未提供'})</p>`;
+      }
+
       actionHtml = `
         <div style="background: #e2eef9; padding: 10px; margin-top: 10px; border-radius: 4px;">
           <h4 style="margin-top: 0; color: #0056b3;">🚚 出貨與結案管理</h4>
-          <p style="font-size: 0.9em; margin-bottom: 8px;">款項已確認。若已完成出貨，請將此訂單結案。</p>
-          <button id="btn-complete-${order.order_id}" class="btn-orange" style="background: #6c757d;" onclick="adminCompleteOrder('${order.order_id}')">標記為「完成訂單」</button>
+          <p style="font-size: 0.9em; margin-bottom: 8px;">初階段貨款已確認 (後五碼: ${order.account_last_5 || '無'})。可核算運費尾款或直接結案。</p>
+          ${shippingStatusBadge}
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+            <button id="btn-complete-${order.order_id}" class="btn-orange" style="background: #6c757d;" onclick="adminCompleteOrder('${order.order_id}')">標記為「完成訂單」</button>
+            <button type="button" class="btn-orange" style="background: #fd7e14;" onclick="toggleShippingFeeBox('${order.order_id}')">解鎖支付運費功能</button>
+          </div>
+          <div id="admin-ship-box-${order.order_id}" style="display: ${order.shipping_fee_status === 'unpaid' ? 'block' : 'none'}; background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #ced4da;">
+            <h4 style="margin-top: 0; color: #333;">修改運費/金額 (二階段運費尾款)</h4>
+            <input type="number" id="admin-ship-price-${order.order_id}" value="${order.shipping_fee || ''}" placeholder="輸入運費金額" style="padding: 5px; width: 120px;">
+            <input type="text" id="admin-ship-note-${order.order_id}" value="${order.admin_note || ''}" placeholder="新增備註 (選填)" style="padding: 5px; width: 250px;">
+            <button id="btn-ship-update-${order.order_id}" class="btn-orange" onclick="adminUnlockShippingPayment('${order.order_id}')">更新訂單並解鎖結帳</button>
+          </div>
         </div>
       `;
     }
@@ -1195,7 +1259,7 @@ window.loadAdminPanel = async function() {
       
       <!-- 金額與倒三角展開按鈕列 -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
-        <div>目前總額: <strong>$${order.total_amount}</strong></div>
+        <div>目前總額: <strong>$${order.total_amount}</strong> ${order.shipping_fee ? `<span style="color:#fd7e14; font-weight:bold; margin-left:8px;">(二階段運費: $${order.shipping_fee})</span>` : ''}</div>
         <button onclick="toggleAdminOrderDetails('${order.order_id}')" style="background: #f1f3f5; border: 1px solid #ced4da; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.85em; display: inline-flex; align-items: center; gap: 5px;">
           <span id="arrow-${order.order_id}" style="display: inline-block; transition: transform 0.2s;">▼</span>
           <span id="text-${order.order_id}">查看商品明細</span>
@@ -1356,6 +1420,85 @@ window.adminCompleteOrder = async function(orderId) {
     alert(`操作失敗: ${err.message}`);
     if (btn) {
       btn.innerText = '標記為「完成訂單」';
+      btn.disabled = false;
+    }
+  }
+};
+
+// 展開/收合二階段運費設定面板
+window.toggleShippingFeeBox = function(orderId) {
+  const box = document.getElementById(`admin-ship-box-${orderId}`);
+  if (box) {
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+// 管理員設定二階段運費並解鎖客戶端運費結帳 (維持 status 為 '進行中')
+window.adminUnlockShippingPayment = async function(orderId) {
+  const btn = document.getElementById(`btn-ship-update-${orderId}`);
+  const shipPriceInput = document.getElementById(`admin-ship-price-${orderId}`);
+  const shipNoteInput = document.getElementById(`admin-ship-note-${orderId}`);
+  if (!shipPriceInput || !shipNoteInput) {
+    return alert('找不到運費或備註輸入欄位，請重新整理後再試');
+  }
+
+  const updatedShippingFee = parseInt(shipPriceInput.value, 10);
+  if (isNaN(updatedShippingFee) || updatedShippingFee <= 0) {
+    return alert('請輸入大於 0 的有效運費金額');
+  }
+
+  try {
+    if (btn) {
+      btn.innerText = '更新中...';
+      btn.disabled = true;
+    }
+
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        shipping_fee: updatedShippingFee,
+        shipping_fee_status: 'unpaid',
+        admin_note: shipNoteInput.value
+      })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    alert(`已設定運費 $${updatedShippingFee} 並解鎖客戶端「運費結帳頁面」！`);
+    loadAdminPanel();
+  } catch (err) {
+    console.error('解鎖運費付款失敗:', err);
+    alert(`更新失敗: ${err.message || '未知錯誤'}`);
+    if (btn) {
+      btn.innerText = '更新訂單並解鎖結帳';
+      btn.disabled = false;
+    }
+  }
+};
+
+// 管理員審核確認二階段運費收款
+window.adminApproveShippingPayment = async function(orderId) {
+  const btn = document.getElementById(`btn-approve-ship-${orderId}`);
+  try {
+    if (btn) {
+      btn.innerText = '處理中...';
+      btn.disabled = true;
+    }
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ shipping_fee_status: 'paid' })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    alert('已確認收到二階段運費！可準備出貨並點擊「標記為完成訂單」。');
+    loadAdminPanel();
+  } catch (err) {
+    console.error('確認運費失敗:', err);
+    alert(`操作失敗: ${err.message || '未知錯誤'}`);
+    if (btn) {
+      btn.innerText = '確認已收運費';
       btn.disabled = false;
     }
   }
