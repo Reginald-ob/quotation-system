@@ -1867,11 +1867,11 @@ window.runSeaCalc = function() {
   let baseFee = 0;
   if (billedWeight > 0) {
     if (cargoType === 'normal') {
-      // 普貨：低消 5kg 一口價 $410 ($360 + 5*10)，> 5kg 每 kg $62
-      baseFee = billedWeight <= 5 ? 410 : (billedWeight * 62);
+      // 普貨：低消 5kg 一口價 $420 ($370 + 5*10)，> 5kg 每 kg $64
+      baseFee = billedWeight <= 5 ? 420 : (billedWeight * 64);
     } else {
-      // 特貨：低消 5kg 一口價 $460 ($410 + 5*10)，> 5kg 每 kg $72
-      baseFee = billedWeight <= 5 ? 460 : (billedWeight * 72);
+      // 特貨：低消 5kg 一口價 $470 ($410 + 5*10)，> 5kg 每 kg $74
+      baseFee = billedWeight <= 5 ? 470 : (billedWeight * 74);
     }
   }
 
@@ -1912,11 +1912,11 @@ window.runAirCalc = function() {
   let baseFee = 0;
   if (billedWeight > 0) {
     if (cargoType === 'normal') {
-      // 普貨：低消 1kg 一口價 $250，> 1kg 每 kg $150
-      baseFee = billedWeight <= 1 ? 250 : (billedWeight * 150);
+      // 普貨：低消 1kg 一口價 $252，> 1kg 每 kg $152
+      baseFee = billedWeight <= 1 ? 252 : (billedWeight * 152);
     } else {
-      // 特貨：低消 1kg 一口價 $260，> 1kg 每 kg $160
-      baseFee = billedWeight <= 1 ? 260 : (billedWeight * 160);
+      // 特貨：低消 1kg 一口價 $262，> 1kg 每 kg $162
+      baseFee = billedWeight <= 1 ? 262 : (billedWeight * 162);
     }
   }
 
@@ -2187,7 +2187,7 @@ window.updateCNYRate = function() {
   if (!displayEl) return;
 
   // 💡 請在這裡手動輸入最新的 CNY 匯率
-  const currentRate = 4.911; // <--- 修改此數值即可更新全站匯率
+  const currentRate = 4.945; // <--- 修改此數值即可更新全站匯率
   
   const BASE_RATE = 4.9;    // 基準價 (無須變動)
 
