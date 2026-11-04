@@ -2064,6 +2064,7 @@ window.executeFuzzySearch = function() {
     `;
     container.appendChild(card);
   });
+};
 
 // 手機版滑動監聽：滑動超過 1 個產品高度時自動收合左側選單
 window.addEventListener('scroll', () => {
