@@ -151,7 +151,6 @@ function renderProductGridAfterLoad(grid) {
     card.onclick = () => openModal(product.id);
     card.innerHTML = `
       <img src="${product.variants[0].image}" alt="${product.name}" loading="lazy">
-      ${renderProductBadges(product.tags)}
       <div class="info">
         <p class="title">${product.name}</p>
         <p class="price">$${product.minPrice}</p>
@@ -2067,7 +2066,6 @@ window.executeFuzzySearch = function() {
     card.onclick = () => openModal(p.id);
     card.innerHTML = `
       <img src="${p.variants[0].image}" alt="${p.name}">
-      ${renderProductBadges(p.tags)}
       <h4>${p.name}</h4>
       <p style="color: #ee4d2d; font-weight: bold;">$${p.minPrice} 起</p>
     `;
