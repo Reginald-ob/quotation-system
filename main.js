@@ -128,7 +128,14 @@ function renderProductBadges(tagsRaw) {
       hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
     const color = colorClasses[Math.abs(hash) % colorClasses.length];
-    return `<button type="button" class="${color}">${tag}</button>`;
+    const escapedTag = tag.replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[char]);
+    return `<button type="button" class="${color}">${escapedTag}</button>`;
   }).join('');
 
   return `<div class="badges">${buttonsHtml}</div>`;
@@ -144,6 +151,7 @@ function renderProductGridAfterLoad(grid) {
     card.onclick = () => openModal(product.id);
     card.innerHTML = `
       <img src="${product.variants[0].image}" alt="${product.name}" loading="lazy">
+      ${renderProductBadges(product.tags)}
       <div class="info">
         <p class="title">${product.name}</p>
         <p class="price">$${product.minPrice}</p>
@@ -159,8 +167,8 @@ window.loadCategory = async function(categorySheet) {
   grid.innerHTML = '<p style="padding: 20px;">載入商品中，請稍候...</p>';
 
   // --- 緩存判定邏輯 ---
-  const cacheKey = `zera_cache_${categorySheet}`;
-  const cacheTimeKey = `zera_cache_time_${categorySheet}`;
+  const cacheKey = `zera_cache_v2_${categorySheet}`;
+  const cacheTimeKey = `zera_cache_time_v2_${categorySheet}`;
   const CACHE_TTL = 1000 * 60 * 30; // 緩存有效期：30 分鐘
 
   const cachedData = sessionStorage.getItem(cacheKey);
@@ -1550,6 +1558,7 @@ window.openModal = function(productId) {
   document.getElementById('modal-name').innerText = currentModalProduct.name;
   document.getElementById('modal-desc').innerText = currentModalProduct.description || '暫無詳細介紹。';
   document.getElementById('modal-qty-input').value = currentModalQty;
+  document.getElementById('modal-badges').innerHTML = renderProductBadges(currentModalProduct.tags);
   document.getElementById('product-modal').style.display = 'flex';
 
   // --- [新增] 判斷現貨庫存是否大於 0，若 > 0 才顯示綠色高亮標籤 ---
