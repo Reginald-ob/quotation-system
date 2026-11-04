@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       const factoryInfo = (row[10] || '').trim();
       const shippingMethod = (row[11] || '').trim();
       const stock = (row[12] || '').trim();
+      const tags = (row[13] || '').trim();
 
       const mainId = skuIds[0] || `P-${Math.random().toString(36).substr(2, 5)}`;
 
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
         factoryInfo: factoryInfo,
         shippingMethod: shippingMethod,
         stock: stock,
+        tags: tags,
         minPrice: minPrice,
         variants: variants
       };

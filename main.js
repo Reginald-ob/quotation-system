@@ -108,6 +108,32 @@ async function loadUserProfile(user) {
   }
 }
 
+// 將逗號分隔之標籤字串轉為 Badge HTML (固定雜湊配色，確保相同標籤顏色一致)
+function renderProductBadges(tagsRaw) {
+  if (!tagsRaw || String(tagsRaw).trim() === '') return '';
+
+  const colorClasses = ['blue', 'green', 'yellow', 'red'];
+  // 同時支援半形逗號 (,) 與全形逗號 (，)
+  const tags = String(tagsRaw)
+    .split(/[,，]/)
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  if (tags.length === 0) return '';
+
+  const buttonsHtml = tags.map(tag => {
+    // 依據標籤文字計算固定索引，確保全站同名標籤顏色統一
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = colorClasses[Math.abs(hash) % colorClasses.length];
+    return `<button type="button" class="${color}">${tag}</button>`;
+  }).join('');
+
+  return `<div class="badges">${buttonsHtml}</div>`;
+}
+
 // 獨立抽離渲染邏輯，讓 API 請求與本地緩存都能共用
 function renderProductGridAfterLoad(grid) {
   grid.innerHTML = ''; // 清空載入提示
@@ -2003,8 +2029,9 @@ window.executeFuzzySearch = function() {
     const prod = allProducts[id];
     const nameMatch = prod.name && prod.name.toLowerCase().includes(query);
     const descMatch = prod.description && prod.description.toLowerCase().includes(query);
+    const tagMatch = prod.tags && prod.tags.toLowerCase().includes(query);
 
-    if (nameMatch || descMatch) {
+    if (nameMatch || descMatch || tagMatch) {
       matchedProducts[id] = prod;
     }
   }
@@ -2031,12 +2058,12 @@ window.executeFuzzySearch = function() {
     card.onclick = () => openModal(p.id);
     card.innerHTML = `
       <img src="${p.variants[0].image}" alt="${p.name}">
+      ${renderProductBadges(p.tags)}
       <h4>${p.name}</h4>
       <p style="color: #ee4d2d; font-weight: bold;">$${p.minPrice} 起</p>
     `;
     container.appendChild(card);
   });
-};
 
 // 手機版滑動監聽：滑動超過 1 個產品高度時自動收合左側選單
 window.addEventListener('scroll', () => {
